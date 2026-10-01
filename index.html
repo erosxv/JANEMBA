@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CallZinha - Chamada em grupo</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>window.Peer || document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -164,48 +165,6 @@
     font-size: 11px;
     display: none;
   }
-  .tile .fs-btn {
-    position: absolute;
-    right: 8px;
-    bottom: 12px;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(0,0,0,.6);
-    color: #eaeaea;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    padding: 0;
-    border: none;
-    cursor: pointer;
-    z-index: 3;
-  }
-  .tile .fs-btn.show { display: flex; }
-  .tile .fs-btn:hover { background: rgba(0,0,0,.8); opacity: 1; }
-  .tile:fullscreen, video:fullscreen { object-fit: contain; background: #000; }
-  .tile .pip-btn {
-    position: absolute;
-    right: 46px;
-    bottom: 12px;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(0,0,0,.6);
-    color: #eaeaea;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    padding: 0;
-    border: none;
-    cursor: pointer;
-    z-index: 3;
-  }
-  .tile .pip-btn.show { display: flex; }
-  .tile .pip-btn.active { background: rgba(91,140,255,.9); }
-  .tile .pip-btn:hover { background: rgba(0,0,0,.8); opacity: 1; }
   .tile .volbar {
     position: absolute;
     left: 0; right: 0; bottom: 0;
@@ -243,7 +202,6 @@
   .ctrl-btn.off { background: #d64545; }
   .ctrl-btn.active { background: #5b8cff; }
   .ctrl-btn.leave { background: #d64545; }
-  .ctrl-btn.noise-on { background: #22b07d; }
   #toast {
     position: fixed;
     bottom: 90px;
@@ -258,52 +216,18 @@
     max-width: 90vw;
     text-align: center;
   }
-  #noisePanel {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1a1d24;
-    border: 1px solid #2a2e37;
-    padding: 16px 18px;
-    border-radius: 12px;
-    font-size: 13px;
-    display: none;
-    z-index: 10;
-    width: 300px;
-    max-width: 90vw;
-    text-align: left;
-  }
-  #noisePanel.show { display: block; }
-  #noisePanel .np-section { margin-bottom: 16px; }
-  #noisePanel .np-section:last-child { margin-bottom: 0; }
-  #noisePanel label { display: block; color: #9aa0a6; margin-bottom: 8px; }
-  #noisePanel select {
-    width: 100%;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid #2a2e37;
-    background: #0f1115;
-    color: #eaeaea;
-    font-size: 13px;
-  }
-  .mode-row { display: flex; gap: 6px; }
-  .mode-row button {
-    flex: 1;
-    padding: 8px 4px;
-    font-size: 11px;
-    background: #2a2e37;
-    color: #9aa0a6;
-    border-radius: 8px;
-  }
-  .mode-row button.active { background: #22b07d; color: #fff; }
-  .meter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .meter-row span { width: 42px; font-size: 11px; color: #9aa0a6; }
-  .meter-bar { flex: 1; height: 8px; border-radius: 4px; background: #0f1115; overflow: hidden; }
-  .meter-fill { height: 100%; width: 0%; transition: width .08s linear; }
-  .meter-fill.mic { background: #5b8cff; }
-  .meter-fill.noise { background: #d68a45; }
-  .meter-fill.voice { background: #22b07d; }
+  /* ---- Celular / tela cheia ---- */
+  #joinScreen, #callScreen { min-height: 100dvh; }
+  #topbar { flex-wrap: wrap; gap: 8px; }
+  #toast { z-index: 2000; }
+  .tile video.has-video { object-fit: contain; }
+  .tile-actions { position: absolute; right: 8px; bottom: 8px; display: none; gap: 8px; }
+  .tile.has-screen .tile-actions { display: flex; }
+  .tile-actions .act { width: 42px; height: 42px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 18px; padding: 0; }
+  .tile:not(.theater) .act-rotate, .tile:not(.theater) .act-exit { display: none; }
+  .tile.theater .act-full { display: none; }
+  body.theater-open { overflow: hidden; }
+  .tile.theater { position: fixed; top: 0; left: 0; z-index: 1000; border: none; border-radius: 0; aspect-ratio: auto; background: #000; }
 </style>
 </head>
 <body>
@@ -333,43 +257,12 @@
   <div id="controls">
     <button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)">🎤</button>
     <button id="screenBtn" class="ctrl-btn" title="Compartilhar tela">🖥️</button>
-    <button id="noiseBtn" class="ctrl-btn noise-on" title="Filtro de ruído (clique: liga/desliga · duplo clique: abrir configurações)">🔉</button>
     <button id="leaveBtn" class="ctrl-btn leave" title="Sair">📵</button>
   </div>
   <div style="text-align:center;font-size:11px;color:#6b7280;padding-bottom:10px;background:#14161c;">Atalho: tecla <b>M</b> muta/desmuta</div>
 </div>
 
 <div id="toast"></div>
-<div id="noisePanel">
-  <div class="np-section">
-    <label>Modo de supressão de ruído</label>
-    <div id="noiseModes" class="mode-row">
-      <button data-mode="off">OFF</button>
-      <button data-mode="low">LOW</button>
-      <button data-mode="medium" class="active">MED</button>
-      <button data-mode="high">HIGH</button>
-      <button data-mode="auto">AUTO</button>
-    </div>
-  </div>
-  <div class="np-section">
-    <label for="micDeviceSelect">Microfone</label>
-    <select id="micDeviceSelect"><option value="">Padrão do sistema</option></select>
-  </div>
-  <div class="np-section">
-    <div class="meter-row"><span>MIC</span><div class="meter-bar"><div id="meterMic" class="meter-fill mic"></div></div></div>
-    <div class="meter-row"><span>RUÍDO</span><div class="meter-bar"><div id="meterNoise" class="meter-fill noise"></div></div></div>
-    <div class="meter-row"><span>VOZ</span><div class="meter-bar"><div id="meterVoice" class="meter-fill voice"></div></div></div>
-  </div>
-  <div class="np-section">
-    <button id="micTestBtn" class="btn-ghost" style="width:100%;">🎙️ Testar: original x processado</button>
-    <div id="micTestResult" style="display:none;margin-top:8px;">
-      <div style="display:flex;gap:8px;">
-        <button id="playOriginalBtn" class="btn-ghost" style="flex:1;font-size:12px;padding:8px;">▶ Original</button>
-        <button id="playProcessedBtn" class="btn-ghost" style="flex:1;font-size:12px;padding:8px;">▶ Processado</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -381,175 +274,6 @@ let localStream = null;   // stream de ÁUDIO bruto do mic
 let micOutputStream = null; // stream já processado (com ganho aplicado) que vai pra chamada
 let micGainNode = null;
 let micVolumePercent = 100; // 0-200%
-let noiseMode = 'medium';   // off | low | medium | high | auto
-let lastActiveNoiseMode = 'medium';
-let noiseHighpass = null;
-let micRawSourceNode = null;
-let voiceGateNode = null;    // AudioWorkletNode (quando o navegador suporta)
-let fallbackGateNode = null; // ScriptProcessorNode (fallback quando não suporta AudioWorklet)
-let compressorNode = null;
-let limiterNode = null;
-let meterState = { floor: 0.001, speaking: false }; // alimentado pelo worklet/fallback
-const latestLevels = {}; // tileId -> nível de volume 0-1 (preenchido pelo attachVolumeMeter)
-let selectedMicDeviceId = null;
-let micTestRawSource = null;
-let micTestOriginalUrl = null;
-let micTestProcessedUrl = null;
-let mixDestination = null;   // destino único onde mic + áudio da tela são misturados
-let screenAudioSource = null;
-let screenAudioGain = null;
-
-// ---- Worklet de supressão de ruído (roda fora da thread principal) ----
-// Faz: envelope de voz (attack/release), estimativa adaptativa do "chão" de ruído
-// (sobe devagar com ruído contínuo tipo ventilador/ar-condicionado, desce rápido
-// quando fica quieto), e um "tempo de confirmação" antes de abrir o gate de vez —
-// isso é o que evita abrir a porta pra um clique de teclado/mouse (que passa rápido
-// demais pra confirmar) mas abre pra voz (que sustenta o sinal).
-const NOISE_WORKLET_CODE = `
-class VoiceGateProcessor extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    const sr = sampleRate;
-    this.sr = sr;
-    this.attackCoef = 1 - Math.exp(-1 / (0.005 * sr));
-    this.releaseCoef = 1 - Math.exp(-1 / (0.120 * sr));
-    this.floorAttackCoef = 1 - Math.exp(-1 / (2.0 * sr));
-    this.floorReleaseCoef = 1 - Math.exp(-1 / (0.4 * sr));
-    this.gainUpCoef = 1 - Math.exp(-1 / (0.008 * sr));
-    this.gainDownCoef = 1 - Math.exp(-1 / (0.180 * sr));
-    this.envelope = 0; this.floor = 0.003; this.currentGain = 1;
-    this.holdCounter = 0; this.confirmCounter = 0; this.frameCount = 0;
-    this.mode = 'medium';
-    this.port.onmessage = (e) => {
-      if (e.data && e.data.type === 'config') this.mode = e.data.mode;
-    };
-  }
-  paramsForMode() {
-    switch (this.mode) {
-      case 'low':  return { ratio: 1.6, floorGain: 0.35, holdMs: 300, confirmMs: 8 };
-      case 'high': return { ratio: 3.2, floorGain: 0.05, holdMs: 200, confirmMs: 20 };
-      case 'auto': return this._autoParams || { ratio: 2.2, floorGain: 0.15, holdMs: 260, confirmMs: 14 };
-      default:     return { ratio: 2.2, floorGain: 0.15, holdMs: 260, confirmMs: 14 };
-    }
-  }
-  process(inputs, outputs) {
-    const input = inputs[0][0];
-    const output = outputs[0][0];
-    if (!input || !output) return true;
-    if (this.mode === 'off') {
-      output.set(input);
-      this.frameCount++;
-      if (this.frameCount % 4 === 0) this.port.postMessage({ floor: this.floor, speaking: false });
-      return true;
-    }
-    if (this.mode === 'auto') {
-      const noisy = this.floor > 0.012, veryNoisy = this.floor > 0.03;
-      this._autoParams = veryNoisy ? { ratio: 3.0, floorGain: 0.08, holdMs: 220, confirmMs: 18 }
-        : noisy ? { ratio: 2.4, floorGain: 0.15, holdMs: 250, confirmMs: 14 }
-        : { ratio: 1.8, floorGain: 0.30, holdMs: 300, confirmMs: 8 };
-    }
-    const p = this.paramsForMode();
-    const holdMax = Math.round((p.holdMs / 1000) * this.sr);
-    const confirmMax = Math.max(1, Math.round((p.confirmMs / 1000) * this.sr));
-    let speaking = false;
-    for (let i = 0; i < input.length; i++) {
-      const level = Math.abs(input[i]);
-      this.envelope = level > this.envelope
-        ? this.envelope + (level - this.envelope) * this.attackCoef
-        : this.envelope + (level - this.envelope) * this.releaseCoef;
-      const aboveFloorNow = this.envelope > this.floor * p.ratio;
-      if (!aboveFloorNow) this.floor += (this.envelope - this.floor) * this.floorAttackCoef;
-      else this.floor += (Math.min(this.envelope, this.floor) - this.floor) * this.floorReleaseCoef;
-      if (this.floor < 0.0008) this.floor = 0.0008;
-      const overThreshold = this.envelope >= this.floor * p.ratio;
-      this.confirmCounter = overThreshold ? Math.min(this.confirmCounter + 1, confirmMax) : 0;
-      const confirmed = this.confirmCounter >= confirmMax;
-      if (confirmed) { this.holdCounter = holdMax; speaking = true; }
-      else if (this.holdCounter > 0) this.holdCounter--;
-      const targetGain = (confirmed || this.holdCounter > 0) ? 1 : p.floorGain;
-      this.currentGain += (targetGain - this.currentGain) * (targetGain > this.currentGain ? this.gainUpCoef : this.gainDownCoef);
-      output[i] = input[i] * this.currentGain;
-    }
-    this.frameCount++;
-    if (this.frameCount % 4 === 0) this.port.postMessage({ floor: this.floor, speaking: speaking || this.holdCounter > 0 });
-    return true;
-  }
-}
-registerProcessor('voice-gate-processor', VoiceGateProcessor);
-`;
-let workletModuleReady = false;
-async function ensureWorkletModule(ctx) {
-  if (workletModuleReady) return true;
-  if (!ctx.audioWorklet) return false;
-  try {
-    const url = URL.createObjectURL(new Blob([NOISE_WORKLET_CODE], { type: 'application/javascript' }));
-    await ctx.audioWorklet.addModule(url);
-    workletModuleReady = true;
-    return true;
-  } catch (e) {
-    console.warn('AudioWorklet indisponível, usando fallback de ScriptProcessor', e);
-    return false;
-  }
-}
-
-// Mesma lógica do worklet acima, só que rodando na thread principal via
-// ScriptProcessorNode — fallback automático pra navegadores sem suporte a AudioWorklet.
-function fallbackParamsForMode(mode, floor) {
-  switch (mode) {
-    case 'low':  return { ratio: 1.6, floorGain: 0.35, holdMs: 300, confirmMs: 8 };
-    case 'high': return { ratio: 3.2, floorGain: 0.05, holdMs: 200, confirmMs: 20 };
-    case 'auto': {
-      const noisy = floor > 0.012, veryNoisy = floor > 0.03;
-      return veryNoisy ? { ratio: 3.0, floorGain: 0.08, holdMs: 220, confirmMs: 18 }
-        : noisy ? { ratio: 2.4, floorGain: 0.15, holdMs: 250, confirmMs: 14 }
-        : { ratio: 1.8, floorGain: 0.30, holdMs: 300, confirmMs: 8 };
-    }
-    default: return { ratio: 2.2, floorGain: 0.15, holdMs: 260, confirmMs: 14 };
-  }
-}
-function createFallbackGateNode(ctx) {
-  const sr = ctx.sampleRate;
-  const attackCoef = 1 - Math.exp(-1 / (0.005 * sr));
-  const releaseCoef = 1 - Math.exp(-1 / (0.120 * sr));
-  const floorAttackCoef = 1 - Math.exp(-1 / (2.0 * sr));
-  const floorReleaseCoef = 1 - Math.exp(-1 / (0.4 * sr));
-  const gainUpCoef = 1 - Math.exp(-1 / (0.008 * sr));
-  const gainDownCoef = 1 - Math.exp(-1 / (0.180 * sr));
-  let envelope = 0, floor = 0.003, currentGain = 1, holdCounter = 0, confirmCounter = 0, frame = 0;
-  const node = ctx.createScriptProcessor(1024, 1, 1);
-  node.onaudioprocess = (e) => {
-    const input = e.inputBuffer.getChannelData(0);
-    const output = e.outputBuffer.getChannelData(0);
-    if (noiseMode === 'off') { output.set(input); return; }
-    const p = fallbackParamsForMode(noiseMode, floor);
-    const holdMax = Math.round((p.holdMs / 1000) * sr);
-    const confirmMax = Math.max(1, Math.round((p.confirmMs / 1000) * sr));
-    let speaking = false;
-    for (let i = 0; i < input.length; i++) {
-      const level = Math.abs(input[i]);
-      envelope = level > envelope ? envelope + (level - envelope) * attackCoef : envelope + (level - envelope) * releaseCoef;
-      const aboveFloorNow = envelope > floor * p.ratio;
-      if (!aboveFloorNow) floor += (envelope - floor) * floorAttackCoef;
-      else floor += (Math.min(envelope, floor) - floor) * floorReleaseCoef;
-      if (floor < 0.0008) floor = 0.0008;
-      const overThreshold = envelope >= floor * p.ratio;
-      confirmCounter = overThreshold ? Math.min(confirmCounter + 1, confirmMax) : 0;
-      const confirmed = confirmCounter >= confirmMax;
-      if (confirmed) { holdCounter = holdMax; speaking = true; }
-      else if (holdCounter > 0) holdCounter--;
-      const targetGain = (confirmed || holdCounter > 0) ? 1 : p.floorGain;
-      currentGain += (targetGain - currentGain) * (targetGain > currentGain ? gainUpCoef : gainDownCoef);
-      output[i] = input[i] * currentGain;
-    }
-    frame++;
-    if (frame % 4 === 0) { meterState.floor = floor; meterState.speaking = speaking || holdCounter > 0; }
-  };
-  return node;
-}
-
-function micConstraints() {
-  return { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-}
 let screenStream = null;  // stream de vídeo (tela), só quando compartilhando
 let hasMic = false;
 const calls = {};       // peerId -> MediaConnection
@@ -576,53 +300,132 @@ if (urlParams.get('room')) $('roomInput').value = urlParams.get('room');
 
 $('joinBtn').onclick = joinCall;
 
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:global.stun.twilio.com:3478' },
+    // TURN: ajuda MUITO quem está no 4G/5G ou em rede restrita. Preencha com os dados do seu provedor:
+    // { urls: 'turn:SEU-SERVIDOR:443?transport=tcp', username: 'USUARIO', credential: 'SENHA' },
+  ]
+};
+const MAX_TRIES = 10;
+let joining = false;
+let retryTimer = null;
+
+function setStatus(t) { $('status').textContent = t; }
+function note(t) { setStatus(t); if ($('joinScreen').style.display === 'none') toast(t); }
+function resumeAudio() { try { const c = getAudioCtx(); if (c.state === 'suspended') c.resume(); } catch (e) {} }
+function killPeer() { if (peer) { try { peer.destroy(); } catch (e) {} peer = null; } }
+function giveUp(msg) { note(msg); $('joinBtn').disabled = false; joining = false; }
+
 async function joinCall() {
+  if (joining) return;
+  joining = true;
+  $('joinBtn').disabled = true;
+  resumeAudio(); // dentro do clique (iPhone exige)
   myName = $('nameInput').value.trim() || "Anônimo";
   roomId = $('roomInput').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-  if (!roomId) { $('status').textContent = "Digite ou gere um código de sala."; return; }
+  if (!roomId) { setStatus("Digite ou gere um código de sala."); joining = false; $('joinBtn').disabled = false; return; }
 
-  $('status').textContent = "Pedindo acesso ao microfone...";
+  setStatus("Pedindo acesso ao microfone...");
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     hasMic = true;
-    await setupMicGainChain(localStream);
-    refreshMicDeviceList();
+    setupMicGainChain(localStream);
   } catch (e) {
     // Não trava a entrada: entra mudo e permite ativar depois, de dentro da sala.
     localStream = new MediaStream();
     hasMic = false;
   }
 
-  $('status').textContent = "Conectando na sala...";
-  startPeer();
+  setStatus("Conectando na sala...");
+  startPeer(0);
 }
 
-function startPeer() {
+function nextTry(attempt, why) {
+  if (attempt + 1 >= MAX_TRIES) { giveUp("Não consegui conectar (" + why + "). Verifique a internet e tente de novo."); return; }
+  note("Conectando... tentativa " + (attempt + 2));
+  retryTimer = setTimeout(() => startPeer(attempt + 1), 1500 + Math.random() * 1500);
+}
+
+// Tenta ser o anfitrião (ID fixo da sala). Se o ID já existe, entra como convidado.
+function startPeer(attempt) {
+  clearTimeout(retryTimer);
+  killPeer();
   const hostId = "callzinha-" + roomId;
-  peer = new Peer(hostId, { debug: 0 });
-
-  peer.on('open', () => {
+  const p = new Peer(hostId, { debug: 0, config: RTC_CONFIG });
+  peer = p;
+  let done = false;
+  const timer = setTimeout(() => again('servidor demorou'), 12000);
+  function again(why) {
+    if (done) return;
+    done = true; clearTimeout(timer);
+    try { p.destroy(); } catch (e) {}
+    nextTry(attempt, why);
+  }
+  p.on('open', () => {
+    if (done) return;
+    done = true; clearTimeout(timer);
     isHost = true;
-    enterCallUI();
-    addLocalTile();
-    listenForGuests();
+    enterCallUI(); addLocalTile(); listenForGuests(); keepAlive(p);
   });
-
-  peer.on('error', (err) => {
+  p.on('error', (err) => {
+    if (done) return;
     if (err.type === 'unavailable-id') {
-      peer = new Peer(undefined, { debug: 0 });
-      peer.on('open', () => {
-        isHost = false;
-        enterCallUI();
-        addLocalTile();
-        connectToHost(hostId);
-        peer.on('call', (call) => acceptCall(call));
-      });
-      peer.on('error', (e2) => { $('status').textContent = "Erro de conexão: " + e2.type; });
-    } else {
-      $('status').textContent = "Erro de conexão: " + err.type;
-    }
+      done = true; clearTimeout(timer);
+      try { p.destroy(); } catch (e) {}
+      joinAsGuest(attempt);
+    } else again(err.type);
   });
+}
+
+// Convidado: só entra na tela da chamada quando o anfitrião realmente responde.
+// Se o "anfitrião" for fantasma (saiu/recarregou e o servidor ainda guarda o ID), tenta de novo sozinho.
+function joinAsGuest(attempt) {
+  const hostId = "callzinha-" + roomId;
+  const p = new Peer(undefined, { debug: 0, config: RTC_CONFIG });
+  peer = p;
+  let ok = false, failed = false;
+  const timer = setTimeout(() => fail('sala não respondeu'), 10000);
+  function fail(why) {
+    if (ok || failed) return;
+    failed = true; clearTimeout(timer);
+    try { p.destroy(); } catch (e) {}
+    nextTry(attempt, why);
+  }
+  p.on('error', (e) => fail(e.type));
+  p.on('open', () => {
+    const conn = p.connect(hostId, { reliable: true });
+    conns[hostId] = conn;
+    conn.on('open', () => {
+      if (failed) return;
+      ok = true; clearTimeout(timer);
+      isHost = false;
+      enterCallUI(); addLocalTile();
+      p.on('call', (call) => acceptCall(call));
+      conn.send({ type: 'hello', name: myName });
+      callPeer(hostId, remoteNames[hostId]);
+      keepAlive(p);
+    });
+    conn.on('data', (msg) => handleData(hostId, msg));
+    conn.on('close', () => { if (ok && peer === p) onHostLost(); });
+  });
+}
+
+// Reconecta ao servidor de sinalização sem perder o ID
+function keepAlive(p) {
+  p.on('disconnected', () => { if (peer === p && !p.destroyed) { try { p.reconnect(); } catch (e) {} } });
+}
+
+// Anfitrião caiu: todo mundo refaz a entrada; o primeiro vira o novo anfitrião, os outros entram nele.
+function onHostLost() {
+  toast("O anfitrião saiu, reconectando...");
+  for (const id of Object.keys(calls)) { try { calls[id].close(); } catch (e) {} delete calls[id]; removeRemoteTile(id); }
+  for (const id of Object.keys(conns)) delete conns[id];
+  for (const id of Object.keys(hostConns)) delete hostConns[id];
+  killPeer();
+  setTimeout(() => startPeer(0), Math.random() * 1500);
 }
 
 function enterCallUI() {
@@ -647,10 +450,9 @@ async function enableMic() {
   const btn = document.getElementById('enableMediaBtn');
   if (btn) { btn.textContent = "Pedindo acesso..."; btn.disabled = true; }
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     hasMic = true; micOn = true;
-    await setupMicGainChain(localStream);
-    refreshMicDeviceList();
+    setupMicGainChain(localStream);
     $('micBtn').textContent = '🎤';
     $('micBtn').classList.add('active'); $('micBtn').classList.remove('off');
     attachVolumeMeter(localStream, 'tile-local');
@@ -681,64 +483,8 @@ function initials(name) {
   return (name || "?").trim().slice(0, 2).toUpperCase();
 }
 
-// ---- Tela cheia ----
-function addFullscreenBtn(tile, video) {
-  let btn = tile.querySelector('.fs-btn');
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.className = 'fs-btn';
-    btn.innerHTML = '⛶';
-    btn.title = 'Tela cheia';
-    btn.onclick = (e) => { e.stopPropagation(); toggleFullscreen(video); };
-    tile.appendChild(btn);
-  }
-  return btn;
-}
-
-function toggleFullscreen(video) {
-  const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
-  if (fsElement) {
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    return;
-  }
-  if (video.requestFullscreen) video.requestFullscreen();
-  else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
-  else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen(); // iOS Safari
-}
-
-// ---- Picture-in-Picture ----
-// Deixa a janela do vídeo (tela compartilhada) flutuando por cima de tudo,
-// inclusive fora do navegador (ex: com outro programa em foco).
-const pipSupported = 'pictureInPictureEnabled' in document && document.pictureInPictureEnabled;
-
-function addPipBtn(tile, video) {
-  let btn = tile.querySelector('.pip-btn');
-  if (btn) return btn;
-  btn = document.createElement('button');
-  btn.className = 'pip-btn';
-  if (!pipSupported) return btn; // botão órfão (nunca aparece) se o navegador não suportar
-  btn.innerHTML = '🗗';
-  btn.title = 'Picture-in-Picture (flutua por cima de outras janelas)';
-  btn.onclick = async (e) => {
-    e.stopPropagation();
-    try {
-      if (document.pictureInPictureElement === video) {
-        await document.exitPictureInPicture();
-      } else {
-        await video.requestPictureInPicture();
-      }
-    } catch (err) {
-      toast("Não consegui abrir o Picture-in-Picture aqui.");
-    }
-  };
-  video.addEventListener('enterpictureinpicture', () => btn.classList.add('active'));
-  video.addEventListener('leavepictureinpicture', () => btn.classList.remove('active'));
-  tile.appendChild(btn);
-  return btn;
-}
-
 function addLocalTile() {
+  if (document.getElementById('tile-local')) return;
   const tile = document.createElement('div');
   tile.className = 'tile mine';
   tile.id = 'tile-local';
@@ -793,6 +539,13 @@ function addRemoteTile(peerId, name) {
     video.volume = e.target.value / 100;
   };
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(volControl);
+  const actions = document.createElement('div');
+  actions.className = 'tile-actions';
+  actions.innerHTML = '<button class="act act-full" title="Tela cheia">⛶</button><button class="act act-rotate" title="Girar tela">🔄</button><button class="act act-exit" title="Sair da tela cheia">✕</button>';
+  actions.querySelector('.act-full').onclick = () => enterTheater(tile);
+  actions.querySelector('.act-rotate').onclick = rotateTheater;
+  actions.querySelector('.act-exit').onclick = exitTheater;
+  tile.appendChild(actions);
   $('grid').appendChild(tile);
   updateCount();
   return video;
@@ -800,13 +553,8 @@ function addRemoteTile(peerId, name) {
 
 function removeRemoteTile(peerId) {
   const tile = document.getElementById('tile-' + peerId);
-  if (tile) {
-    const video = tile.querySelector('video');
-    if (video && document.pictureInPictureElement === video) {
-      document.exitPictureInPicture().catch(() => {});
-    }
-    tile.remove();
-  }
+  if (theater && tile && theater.tile === tile) exitTheater();
+  if (tile) tile.remove();
   updateCount();
 }
 
@@ -836,14 +584,7 @@ function broadcastRoster() {
   }
 }
 
-// ---- GUEST: conecta no host, recebe lista, conecta com todo mundo (mesh) ----
-function connectToHost(hostId) {
-  const conn = peer.connect(hostId, { reliable: true });
-  conns[hostId] = conn;
-  conn.on('open', () => conn.send({ type: 'hello', name: myName }));
-  conn.on('data', (msg) => handleData(hostId, msg));
-  callPeer(hostId, myName);
-}
+
 
 function handleData(fromId, msg) {
   if (msg.type === 'hello') {
@@ -852,19 +593,13 @@ function handleData(fromId, msg) {
     if (isHost) broadcastRoster();
   } else if (msg.type === 'welcome') {
     remoteNames[fromId] = msg.name;
+    updateTileName(fromId);
   } else if (msg.type === 'roster') {
     Object.assign(remoteNames, msg.names);
     updateTileName(fromId);
     (msg.peers || []).forEach(pid => {
-      if (pid !== peer.id && !calls[pid]) {
-        callPeer(pid, remoteNames[pid]);
-        if (!conns[pid]) {
-          const c = peer.connect(pid, { reliable: true });
-          conns[pid] = c;
-          c.on('open', () => c.send({ type: 'hello', name: myName }));
-          c.on('data', (m) => handleData(pid, m));
-        }
-      }
+      // Só o lado de ID "menor" liga, pra dois convidados não ligarem um pro outro ao mesmo tempo
+      if (pid !== peer.id && !calls[pid] && peer.id < pid) callPeer(pid, remoteNames[pid]);
     });
   }
 }
@@ -902,251 +637,27 @@ function attachVolumeMeter(stream, tileId) {
     let sum = 0;
     for (let i = 0; i < data.length; i++) sum += data[i];
     const level = Math.min(1, (sum / data.length) / 55);
-    latestLevels[tileId] = level;
-    // O medidor lê o mic bruto (antes do mute), então sem isso o indicador de
-    // "falando" continuava acendendo mesmo com o mic mutado.
-    const displayLevel = (tileId === 'tile-local' && !micOn) ? 0 : level;
     const fill = tile.querySelector('.volfill');
-    if (fill) fill.style.width = (displayLevel * 100) + '%';
-    tile.classList.toggle('speaking', displayLevel > 0.12);
+    if (fill) fill.style.width = (level * 100) + '%';
+    tile.classList.toggle('speaking', level > 0.12);
     volumeLoops[tileId] = requestAnimationFrame(loop);
   }
   loop();
 }
 
-function teardownMicChain() {
-  [micRawSourceNode, noiseHighpass, voiceGateNode, fallbackGateNode, compressorNode, limiterNode, micGainNode].forEach(n => {
-    if (n) { try { n.disconnect(); } catch (e) {} }
-  });
-  voiceGateNode = null;
-  fallbackGateNode = null;
-}
-
-async function setupMicGainChain(rawStream) {
+function setupMicGainChain(rawStream) {
   const ctx = getAudioCtx();
-  teardownMicChain(); // solta a cadeia anterior (importante ao trocar de microfone)
-
   const source = ctx.createMediaStreamSource(rawStream);
-  micRawSourceNode = source;
-
-  // 1) Corta zumbido/ronco grave contínuo (ventilador, fiação, batida no fio)
-  noiseHighpass = ctx.createBiquadFilter();
-  noiseHighpass.type = 'highpass';
-  noiseHighpass.frequency.value = noiseMode !== 'off' ? 120 : 0;
-
-  // 2) Supressão de ruído + VAD (AudioWorklet quando suportado; ScriptProcessor como fallback)
-  const usingWorklet = await ensureWorkletModule(ctx);
-  let gateOutput;
-  if (usingWorklet) {
-    voiceGateNode = new AudioWorkletNode(ctx, 'voice-gate-processor', { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1 });
-    voiceGateNode.port.onmessage = (e) => {
-      meterState.floor = e.data.floor;
-      meterState.speaking = e.data.speaking;
-    };
-    voiceGateNode.port.postMessage({ type: 'config', mode: noiseMode });
-    noiseHighpass.connect(voiceGateNode);
-    gateOutput = voiceGateNode;
-  } else {
-    fallbackGateNode = createFallbackGateNode(ctx);
-    noiseHighpass.connect(fallbackGateNode);
-    gateOutput = fallbackGateNode;
-  }
-
-  // 3) Compressor: nivela a voz (menos picos e vales de volume, sem robotizar)
-  compressorNode = ctx.createDynamicsCompressor();
-  compressorNode.threshold.value = -24;
-  compressorNode.knee.value = 12;
-  compressorNode.ratio.value = 3;
-  compressorNode.attack.value = 0.01;
-  compressorNode.release.value = 0.15;
-
-  // 4) Limiter: teto de segurança contra picos/clipping (normalização final)
-  limiterNode = ctx.createDynamicsCompressor();
-  limiterNode.threshold.value = -3;
-  limiterNode.knee.value = 0;
-  limiterNode.ratio.value = 20;
-  limiterNode.attack.value = 0.001;
-  limiterNode.release.value = 0.05;
-
   micGainNode = ctx.createGain();
   micGainNode.gain.value = micOn ? micVolumePercent / 100 : 0;
-
-  mixDestination = ctx.createMediaStreamDestination();
-
-  source.connect(noiseHighpass);
-  gateOutput.connect(compressorNode);
-  compressorNode.connect(limiterNode);
-  limiterNode.connect(micGainNode);
-  micGainNode.connect(mixDestination);
-
-  micOutputStream = mixDestination.stream;
-
-  attachVolumeMeter(rawStream, 'tile-local');
-  startNoisePanelMeterLoop();
+  const dest = ctx.createMediaStreamDestination();
+  source.connect(micGainNode);
+  micGainNode.connect(dest);
+  micOutputStream = dest.stream;
 }
-
-// Pluga o áudio da tela/aba compartilhada na MESMA saída do microfone,
-// pra sair tudo misturado num único trilho de áudio (mais confiável entre navegadores
-// do que mandar dois trilhos de áudio separados).
-function attachScreenAudio(stream) {
-  detachScreenAudio();
-  const audioTracks = stream.getAudioTracks();
-  if (!audioTracks.length || !mixDestination) return;
-  const ctx = getAudioCtx();
-  const screenAudioStream = new MediaStream(audioTracks);
-  screenAudioSource = ctx.createMediaStreamSource(screenAudioStream);
-  screenAudioGain = ctx.createGain();
-  screenAudioGain.gain.value = 1;
-  screenAudioSource.connect(screenAudioGain);
-  screenAudioGain.connect(mixDestination);
-}
-
-function detachScreenAudio() {
-  if (screenAudioSource) { try { screenAudioSource.disconnect(); } catch (e) {} screenAudioSource = null; }
-  if (screenAudioGain) { try { screenAudioGain.disconnect(); } catch (e) {} screenAudioGain = null; }
-}
-
-function setNoiseMode(mode) {
-  noiseMode = mode;
-  document.querySelectorAll('#noiseModes button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-  if (noiseHighpass) noiseHighpass.frequency.value = mode !== 'off' ? 120 : 0;
-  if (voiceGateNode) voiceGateNode.port.postMessage({ type: 'config', mode });
-  $('noiseBtn').classList.toggle('noise-on', mode !== 'off');
-  $('noiseBtn').textContent = mode !== 'off' ? '🔉' : '🔈';
-}
-document.querySelectorAll('#noiseModes button').forEach(b => {
-  b.onclick = () => {
-    setNoiseMode(b.dataset.mode);
-    toast(b.dataset.mode !== 'off' ? ("Supressão de ruído: " + b.dataset.mode.toUpperCase()) : "Supressão de ruído desativada");
-  };
-});
-
-$('noiseBtn').onclick = () => {
-  if (noiseMode === 'off') {
-    setNoiseMode(lastActiveNoiseMode);
-  } else {
-    lastActiveNoiseMode = noiseMode;
-    setNoiseMode('off');
-  }
-  toast(noiseMode !== 'off' ? ("Supressão de ruído: " + noiseMode.toUpperCase()) : "Supressão de ruído desativada");
-};
-
-$('noiseBtn').ondblclick = (e) => {
-  e.preventDefault();
-  $('noisePanel').classList.toggle('show');
-};
-
-// Fecha o painel se clicar fora dele
-document.addEventListener('click', (e) => {
-  if (e.target.id !== 'noiseBtn' && !$('noisePanel').contains(e.target)) {
-    $('noisePanel').classList.remove('show');
-  }
-});
-
-// ---- Seleção de microfone ----
-async function refreshMicDeviceList() {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const mics = devices.filter(d => d.kind === 'audioinput');
-    const sel = $('micDeviceSelect');
-    if (!sel) return;
-    const current = selectedMicDeviceId || sel.value;
-    sel.innerHTML = '';
-    mics.forEach((d, i) => {
-      const opt = document.createElement('option');
-      opt.value = d.deviceId;
-      opt.textContent = d.label || ('Microfone ' + (i + 1));
-      sel.appendChild(opt);
-    });
-    if (mics.some(d => d.deviceId === current)) sel.value = current;
-  } catch (e) {}
-}
-if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
-  navigator.mediaDevices.addEventListener('devicechange', refreshMicDeviceList);
-}
-$('micDeviceSelect').onchange = (e) => { if (e.target.value) switchMicDevice(e.target.value); };
-
-async function switchMicDevice(deviceId) {
-  try {
-    toast("Trocando microfone...");
-    const constraints = Object.assign(micConstraints(), { deviceId: { exact: deviceId } });
-    const newStream = await navigator.mediaDevices.getUserMedia({ audio: constraints });
-    if (localStream) localStream.getTracks().forEach(t => t.stop());
-    localStream = newStream;
-    selectedMicDeviceId = deviceId;
-    hasMic = true;
-    await setupMicGainChain(localStream);
-    if (Object.keys(calls).length) rebuildAllCalls();
-    toast("Microfone trocado!");
-  } catch (e) {
-    toast("Não consegui trocar pra esse microfone.");
-  }
-}
-
-// ---- Medidores em tempo real (MIC / RUÍDO / VOZ) ----
-let noisePanelMeterRAF = null;
-function startNoisePanelMeterLoop() {
-  if (noisePanelMeterRAF) return;
-  function loop() {
-    if ($('noisePanel').classList.contains('show')) {
-      const micLevel = latestLevels['tile-local'] || 0;
-      const mm = $('meterMic'), mn = $('meterNoise'), mv = $('meterVoice');
-      if (mm) mm.style.width = Math.min(1, micLevel * 1.4) * 100 + '%';
-      if (mn) mn.style.width = Math.min(1, meterState.floor * 25) * 100 + '%';
-      if (mv) mv.style.width = (meterState.speaking ? Math.min(1, micLevel * 1.6) : Math.min(1, micLevel * 0.3)) * 100 + '%';
-    }
-    noisePanelMeterRAF = requestAnimationFrame(loop);
-  }
-  loop();
-}
-
-// ---- Teste de microfone: grava original x processado em paralelo (~3s) ----
-$('micTestBtn').onclick = runMicTest;
-async function runMicTest() {
-  if (!hasMic || !localStream) { toast("Ative o microfone primeiro."); return; }
-  const ctx = getAudioCtx();
-  const btn = $('micTestBtn');
-  btn.disabled = true;
-  btn.textContent = "🔴 Gravando 3s (fale, bata no teclado, ligue o ventilador)...";
-
-  const rawDest = ctx.createMediaStreamDestination();
-  const procDest = ctx.createMediaStreamDestination();
-  if (micTestRawSource) { try { micTestRawSource.disconnect(); } catch (e) {} }
-  micTestRawSource = ctx.createMediaStreamSource(localStream);
-  micTestRawSource.connect(rawDest);
-  if (limiterNode) limiterNode.connect(procDest);
-
-  const recA = new MediaRecorder(rawDest.stream);
-  const recB = new MediaRecorder(procDest.stream);
-  const chunksA = [], chunksB = [];
-  recA.ondataavailable = (e) => { if (e.data.size) chunksA.push(e.data); };
-  recB.ondataavailable = (e) => { if (e.data.size) chunksB.push(e.data); };
-  const doneA = new Promise((res) => { recA.onstop = res; });
-  const doneB = new Promise((res) => { recB.onstop = res; });
-
-  recA.start(); recB.start();
-  await new Promise((res) => setTimeout(res, 3000));
-  recA.stop(); recB.stop();
-  await Promise.all([doneA, doneB]);
-
-  try { micTestRawSource.disconnect(); } catch (e) {}
-  if (limiterNode) { try { limiterNode.disconnect(procDest); } catch (e) {} }
-
-  if (micTestOriginalUrl) URL.revokeObjectURL(micTestOriginalUrl);
-  if (micTestProcessedUrl) URL.revokeObjectURL(micTestProcessedUrl);
-  micTestOriginalUrl = URL.createObjectURL(new Blob(chunksA, { type: 'audio/webm' }));
-  micTestProcessedUrl = URL.createObjectURL(new Blob(chunksB, { type: 'audio/webm' }));
-
-  btn.disabled = false;
-  btn.textContent = "🎙️ Testar de novo";
-  $('micTestResult').style.display = 'block';
-}
-$('playOriginalBtn').onclick = () => { if (micTestOriginalUrl) new Audio(micTestOriginalUrl).play(); };
-$('playProcessedBtn').onclick = () => { if (micTestProcessedUrl) new Audio(micTestProcessedUrl).play(); };
 
 function outgoingStream() {
-  // micOutputStream já sai com mic + áudio da tela (se houver) misturados num só trilho.
-  // Só falta juntar o vídeo da tela, quando estiver compartilhando.
+  // Junta áudio do mic (já com ganho aplicado, se houver) + vídeo da tela (se estiver compartilhando)
   const tracks = [];
   if (micOutputStream) tracks.push(...micOutputStream.getAudioTracks());
   if (sharingScreen && screenStream) tracks.push(...screenStream.getVideoTracks());
@@ -1169,12 +680,16 @@ function acceptCall(call) {
 
 function wireCall(call, name) {
   call.on('stream', (remoteStream) => {
+    if (calls[call.peer] !== call) return; // chamada antiga/duplicada
     const video = addRemoteTile(call.peer, name || remoteNames[call.peer]);
     video.srcObject = remoteStream;
     const hasVideo = remoteStream.getVideoTracks().length > 0;
     video.classList.toggle('has-video', hasVideo);
     const tile = document.getElementById('tile-' + call.peer);
-    if (tile) tile.querySelector('.screen-badge')?.remove();
+    if (tile) {
+      tile.classList.toggle('has-screen', hasVideo);
+      tile.querySelector('.screen-badge')?.remove();
+    }
     if (hasVideo && tile) {
       const badge = document.createElement('div');
       badge.className = 'screen-badge';
@@ -1182,13 +697,13 @@ function wireCall(call, name) {
       badge.style.display = 'block';
       tile.appendChild(badge);
     }
-    if (tile) {
-      addFullscreenBtn(tile, video).classList.toggle('show', hasVideo);
-      addPipBtn(tile, video).classList.toggle('show', hasVideo);
-    }
+    tryPlay(video);
     attachVolumeMeter(remoteStream, 'tile-' + call.peer);
   });
-  call.on('close', () => { removeRemoteTile(call.peer); delete calls[call.peer]; });
+  call.on('close', () => {
+    if (calls[call.peer] !== call) return; // já foi trocada por uma chamada nova
+    removeRemoteTile(call.peer); delete calls[call.peer];
+  });
 }
 
 function rebuildAllCalls() {
@@ -1212,23 +727,15 @@ $('micBtn').onclick = () => {
 $('screenBtn').onclick = async () => {
   if (!sharingScreen) {
     try {
-      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     } catch (e) { return; }
     sharingScreen = true;
-    const localTile = $('tile-local');
     const localVideo = document.querySelector('#tile-local video');
     localVideo.srcObject = screenStream;
     localVideo.classList.add('has-video');
-    addFullscreenBtn(localTile, localVideo).classList.add('show');
-    addPipBtn(localTile, localVideo).classList.add('show');
     $('screenBtn').classList.add('active');
-    attachScreenAudio(screenStream);
     rebuildAllCalls();
-    if (screenStream.getAudioTracks().length) {
-      toast("Compartilhando sua tela (com áudio)");
-    } else {
-      toast("Compartilhando sua tela (sem áudio — marque \"Compartilhar áudio\" na janela de seleção pra levar o som junto)");
-    }
+    toast("Compartilhando sua tela");
     screenStream.getVideoTracks()[0].onended = stopScreenShare;
   } else {
     stopScreenShare();
@@ -1237,15 +744,10 @@ $('screenBtn').onclick = async () => {
 
 function stopScreenShare() {
   if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-  detachScreenAudio();
   sharingScreen = false;
   const localVideo = document.querySelector('#tile-local video');
   localVideo.srcObject = null;
   localVideo.classList.remove('has-video');
-  const localTile = $('tile-local');
-  localTile?.querySelector('.fs-btn')?.classList.remove('show');
-  localTile?.querySelector('.pip-btn')?.classList.remove('show');
-  if (document.pictureInPictureElement === localVideo) document.exitPictureInPicture().catch(() => {});
   $('screenBtn').classList.remove('active');
   rebuildAllCalls();
   toast("Parou de compartilhar a tela");
@@ -1268,7 +770,90 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ---- Tela cheia + girar (celular) ----
+let theater = null; // { tile, rot, fs }
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+function tryPlay(v) { const pr = v.play(); if (pr && pr.catch) pr.catch(() => toast("Toque na tela pra liberar o áudio 🔊")); }
+function leaveFs() {
+  if (theater) theater.fs = false;
+  if (fsEl()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} }
+}
+
+function layoutTheater() {
+  if (!theater) return;
+  const t = theater.tile, W = window.innerWidth, H = window.innerHeight;
+  const rot = (H > W) ? theater.rot : 0; // só gira via CSS enquanto o celular está em pé
+  t.style.transformOrigin = '0 0';
+  if (rot === 90)       { t.style.width = H + 'px'; t.style.height = W + 'px'; t.style.transform = 'translateX(' + W + 'px) rotate(90deg)'; }
+  else if (rot === 270) { t.style.width = H + 'px'; t.style.height = W + 'px'; t.style.transform = 'translateY(' + H + 'px) rotate(-90deg)'; }
+  else                  { t.style.width = W + 'px'; t.style.height = H + 'px'; t.style.transform = 'none'; }
+}
+
+async function enterTheater(tile) {
+  if (theater) exitTheater();
+  const video = tile.querySelector('video');
+  theater = { tile, rot: 0, fs: false };
+  tile.classList.add('theater');
+  document.body.classList.add('theater-open');
+  layoutTheater();
+  let locked = false;
+  const fn = tile.requestFullscreen || tile.webkitRequestFullscreen;
+  if (fn) {
+    try {
+      await fn.call(tile);
+      if (theater) theater.fs = true;
+      if (screen.orientation && screen.orientation.lock && video.videoWidth >= video.videoHeight) {
+        await screen.orientation.lock('landscape'); // Android/Chrome: gira de verdade
+        locked = true;
+      }
+    } catch (e) {}
+  }
+  // Sem tela cheia nativa (iPhone): se está em pé e o vídeo é largo, deita via CSS
+  if (theater && theater.tile === tile && !theater.fs && !locked && window.innerHeight > window.innerWidth && video.videoWidth >= video.videoHeight) theater.rot = 90;
+  layoutTheater();
+}
+
+async function rotateTheater() {
+  if (!theater) return;
+  if (theater.fs && screen.orientation && screen.orientation.lock) {
+    try {
+      const landscape = window.innerWidth > window.innerHeight;
+      await screen.orientation.lock(landscape ? 'portrait' : 'landscape');
+      theater.rot = 0; layoutTheater(); return;
+    } catch (e) {}
+  }
+  if (theater.fs) leaveFs(); // rotação por CSS precisa do modo "janela cheia"
+  theater.rot = theater.rot === 0 ? 90 : theater.rot === 90 ? 270 : 0;
+  layoutTheater();
+}
+
+function exitTheater() {
+  if (!theater) return;
+  const t = theater.tile;
+  theater = null;
+  t.classList.remove('theater');
+  t.style.width = ''; t.style.height = ''; t.style.transform = ''; t.style.transformOrigin = '';
+  document.body.classList.remove('theater-open');
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+  if (fsEl()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} }
+}
+
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev =>
+  document.addEventListener(ev, () => { if (theater && theater.fs && !fsEl()) exitTheater(); }));
+window.addEventListener('resize', layoutTheater);
+window.addEventListener('orientationchange', layoutTheater);
+
+// Celular não consegue compartilhar tela: esconde o botão
+if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) $('screenBtn').style.display = 'none';
+
+// Qualquer toque libera áudio/vídeo que o navegador tenha bloqueado
+document.addEventListener('click', () => {
+  resumeAudio();
+  document.querySelectorAll('.tile video').forEach(v => { if (v.paused && v.srcObject) v.play().catch(() => {}); });
+}, { passive: true });
+
 window.onbeforeunload = () => { if (peer) peer.destroy(); };
+window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // celular: libera o ID da sala mais rápido
 </script>
 </body>
 </html>
