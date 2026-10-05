@@ -619,15 +619,24 @@ function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
+let localMeterAnalyser = null;
 function attachVolumeMeter(stream, tileId) {
-  if (!stream.getAudioTracks().length) return;
+  const isLocal = (tileId === 'tile-local');
+  if (!isLocal && !stream.getAudioTracks().length) return;
   if (volumeLoops[tileId]) { cancelAnimationFrame(volumeLoops[tileId]); delete volumeLoops[tileId]; }
   const ctx = getAudioCtx();
-  const source = ctx.createMediaStreamSource(stream);
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 512;
   analyser.smoothingTimeConstant = 0.6;
-  source.connect(analyser);
+  if (isLocal && micGainNode) {
+    // Mede o áudio DEPOIS do ganho: mutado (ganho 0) = silêncio = sem borda azul
+    if (localMeterAnalyser) { try { micGainNode.disconnect(localMeterAnalyser); } catch (e) {} }
+    micGainNode.connect(analyser);
+    localMeterAnalyser = analyser;
+  } else {
+    const source = ctx.createMediaStreamSource(stream);
+    source.connect(analyser);
+  }
   const data = new Uint8Array(analyser.frequencyBinCount);
 
   function loop() {
@@ -636,7 +645,8 @@ function attachVolumeMeter(stream, tileId) {
     analyser.getByteFrequencyData(data);
     let sum = 0;
     for (let i = 0; i < data.length; i++) sum += data[i];
-    const level = Math.min(1, (sum / data.length) / 55);
+    let level = Math.min(1, (sum / data.length) / 55);
+    if (isLocal && !micOn) level = 0; // mutado: nunca mostra como falando
     const fill = tile.querySelector('.volfill');
     if (fill) fill.style.width = (level * 100) + '%';
     tile.classList.toggle('speaking', level > 0.12);
