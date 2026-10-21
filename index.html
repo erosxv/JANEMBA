@@ -368,6 +368,65 @@
   #joinScreen h1 .ic { width: 30px; height: 30px; color: #5b8cff; }
   #genRoomBtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
   #settingsPanel header h2 { display: inline-flex; align-items: center; gap: 8px; }
+  /* ================= visuais da sala: Cinema, Roda e Ao vivo ================= */
+  /* pessoas viram bolinhas (em todos os visuais); quem fala ganha um anel verde */
+  #grid .tile:not(.focus) { background: transparent; border: none; border-radius: 0; aspect-ratio: auto; overflow: visible; flex-direction: column; gap: 6px; padding: 10px 4px 6px; box-shadow: none; }
+  #grid .tile:not(.focus) video { display: none !important; }
+  #grid .tile:not(.focus) .avatar { display: flex !important; width: var(--av, 88px); height: var(--av, 88px); font-size: calc(var(--av, 88px) * .34); margin: 0; transition: box-shadow .15s ease; }
+  #grid .tile.speaking:not(.focus) .avatar { box-shadow: 0 0 0 3px #3ecf8e, 0 0 0 8px rgba(62,207,142,.16); }
+  #grid .tile:not(.focus) .tag { position: static; background: none; padding: 0; font-size: 13px; color: #c9ccd1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #grid .tile:not(.focus) .volbar, #grid .tile:not(.focus) .screen-badge, #grid .tile:not(.focus) .tile-actions { display: none !important; }
+  #grid .tile:not(.focus) .vol-control { top: 0; right: 0; opacity: 0; transition: opacity .15s ease; }
+  #grid .tile:not(.focus):hover .vol-control, #grid .tile:not(.focus):focus-within .vol-control { opacity: 1; }
+  #grid .tile:not(.focus) .state-badges { position: static; flex-direction: row; justify-content: center; }
+  #grid .tile.focus { border-radius: 14px; aspect-ratio: auto; order: -1; }   /* o palco vem sempre primeiro */
+  /* sem palco: bolinhas no centro */
+  #grid:not(.has-stage) { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 24px 32px; }
+  #grid:not(.has-stage) .tile { width: 132px; }
+  /* Cinema: palco grande, pessoas numa coluna fina, barra de botões flutuante que some com o mouse parado */
+  body.v-cinema #callScreen { height: 100dvh; }
+  body.v-cinema #grid { min-height: 0; }
+  body.v-cinema #grid.has-stage { display: grid; grid-template-columns: minmax(0, 1fr) 104px; grid-template-rows: repeat(8, min-content) minmax(0, 1fr); gap: 2px 12px; padding: 12px; overflow: hidden; }
+  body.v-cinema #grid.has-stage .tile.focus { grid-column: 1; grid-row: 1 / -1; height: 100%; }
+  body.v-cinema #grid.has-stage .tile:not(.focus) { grid-column: 2; --av: 56px; padding: 6px 2px; }
+  body.v-cinema #grid.has-stage .tile:not(.focus) .tag { font-size: 11px; }
+  body.v-cinema #grid.has-stage .tile:not(.focus) .sbadge, body.v-live #grid.has-stage .tile:not(.focus) .sbadge { font-size: 10px; white-space: nowrap; padding: 1px 5px; }
+  body.v-cinema #controls { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); padding: 8px 10px; border: 1px solid #2a2e37; border-radius: 22px; background: rgba(20,22,28,.94); z-index: 900; transition: opacity .4s ease; }
+  body.v-cinema.idle #controls { opacity: 0; pointer-events: none; }
+  body.v-cinema #shortcutHint { display: none; }
+  /* Roda: bolinhas grandes; se alguém compartilhar a tela, ela aparece em cima */
+  body.v-roda #grid.has-stage { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 6px 28px; }
+  body.v-roda #grid.has-stage .tile.focus { flex: 0 0 100%; height: calc(100dvh - 330px); min-height: 240px; }
+  body.v-roda #grid.has-stage .tile:not(.focus) { --av: 64px; width: 110px; }
+  /* Ao vivo (celular): vídeo em cima, pessoas numa linha, chat sempre aberto embaixo */
+  body.v-live #callScreen { height: 100dvh; min-height: 0; }
+  body.v-live #topbar { padding: 8px 12px; flex-wrap: nowrap; }
+  body.v-live #topbar .txt, body.v-live #netBadge { display: none !important; }
+  body.v-live #grid { flex: none; max-height: 56dvh; overflow-y: auto; gap: 4px 10px; padding: 10px; }
+  body.v-live #grid:not(.has-stage) .tile { width: 96px; --av: 64px; }
+  body.v-live #grid.has-stage { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; }
+  body.v-live #grid.has-stage .tile.focus { flex: 0 0 100%; aspect-ratio: 16 / 9; height: auto; border-radius: 12px; }
+  body.v-live #grid.has-stage .tile:not(.focus) { --av: 40px; width: 68px; padding: 6px 0 2px; }
+  body.v-live #grid.has-stage .tile:not(.focus) .tag { font-size: 11px; }
+  body.v-live:not(.theater-open) #chatPanel { position: static; flex: 1; min-height: 120px; width: auto; height: auto; border: none; border-top: 1px solid #2a2e37; border-radius: 0; background: #0f1115; z-index: auto; }
+  body.v-live:not(.theater-open) #chatPanel .chead { display: none; }
+  body.v-live #chatBtn, body.v-live #shortcutHint { display: none; }
+  body.v-live #controls { padding: 8px; gap: 6px; }
+  body.v-live:not(.theater-open) #reactBar { left: auto; right: 8px; top: auto; bottom: 150px; transform: none; flex-direction: row; gap: 4px; }
+  body.v-live:not(.theater-open) #reactBar button { width: 34px; height: 34px; font-size: 18px; }
+  body.v-live #grid .tile.focus .screen-badge, body.v-live #grid .tile.focus .state-badges { display: none !important; }
+  body.v-live:not(.theater-open) #notices { display: none; }
+  /* reação aparece em cima de quem reagiu */
+  .tile .rbubble { position: absolute; top: -4px; left: 50%; font-size: 28px; line-height: 1; pointer-events: none; z-index: 4; animation: rbub 1.8s ease-out forwards; }
+  @keyframes rbub { 0% { transform: translate(-50%, 6px) scale(.4); opacity: 0; } 15% { transform: translate(-50%, -6px) scale(1.15); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(-50%, -22px) scale(1); opacity: 0; } }
+  /* música tocando: cartãozinho no canto (Cinema e Roda) */
+  #nowPlaying { position: fixed; left: 16px; bottom: 96px; z-index: 800; display: none; align-items: center; gap: 8px; max-width: min(300px, calc(100vw - 32px)); padding: 8px 12px; border-radius: 12px; border: 1px solid #2a2e37; background: rgba(20,22,28,.94); color: #c9ccd1; font-size: 12px; font-weight: 400; transition: opacity .4s ease; }
+  #nowPlaying .ic { color: #8fb0ff; }
+  #nowPlaying span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #nowPlaying.show { display: inline-flex; }
+  body.v-cinema #nowPlaying { bottom: 18px; }
+  body.v-cinema.idle #nowPlaying { opacity: 0; pointer-events: none; }
+  body.v-live #nowPlaying, body.theater-open #nowPlaying { display: none; }
   /* ================= chat, reações e tela cheia ================= */
   .ctrl-btn { position: relative; }
   #chatBadge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #d64545; color: #fff; font-size: 11px; line-height: 18px; display: none; }
@@ -434,6 +493,9 @@
   <symbol id="i-signal" viewBox="0 0 24 24"><path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/></symbol>
   <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4M18 2l4 4-4 4M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22M2 6h1.9c1.5 0 2.9.9 3.6 2.2M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3ZM12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-cinema" viewBox="0 0 24 24"><rect width="20" height="15" x="2" y="7" rx="2"/><path d="m17 2-5 5-5-5"/></symbol>
+  <symbol id="i-roda" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-live" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
 </svg>
 
@@ -458,8 +520,8 @@
     <div class="roomInfo">Sala: <b id="roomLabel"></b> &nbsp;•&nbsp; <span id="peerCount">1</span> na chamada</div>
     <div class="topActions">
       <button id="netBadge" title="Qualidade da conexão — clique para ver os detalhes"></button>
-      <button id="layoutBtn" class="top-btn" title="Alternar layout: grade / foco / lateral"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg>Grade</button>
-      <button id="copyLinkBtn"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Copiar link de convite</button>
+      <button id="visualBtn" class="top-btn" title="Trocar o visual da sala (só muda a sua tela)"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="txt">Automático</span></button>
+      <button id="copyLinkBtn" title="Copiar link de convite"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="txt">Copiar link de convite</span></button>
     </div>
   </div>
   <div id="micAlert"><span id="micAlertText"></span><button id="micAlertBtn"></button></div>
@@ -473,6 +535,7 @@
     <button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button>
     <button id="leaveBtn" class="ctrl-btn leave" title="Sair"><svg class="ic" aria-hidden="true"><use href="#i-phone-off"/></svg></button>
   </div>
+  <button id="nowPlaying" title="Abrir a música da sala"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg><span id="nowPlayingText"></span></button>
   <div id="reactBar" aria-label="Reações"></div>
   <div id="reactLayer"></div>
   <div id="shortcutHint" style="text-align:center;font-size:11px;color:#6b7280;padding-bottom:10px;background:#14161c;">Atalho: tecla <b>M</b> muta/desmuta</div>
@@ -619,8 +682,17 @@
         <span class="lbl">Painel de diagnóstico</span>
         <button id="openDiagBtn" class="sbtn">Abrir</button>
       </div>
+      <div class="srow">
+        <label for="setVisual">Visual da sala</label>
+        <select id="setVisual">
+          <option value="auto">Automático (celular: Ao vivo; computador: Cinema ou Roda)</option>
+          <option value="cinema">Cinema: a tela compartilhada em primeiro lugar</option>
+          <option value="roda">Roda: as pessoas em primeiro lugar</option>
+          <option value="live">Ao vivo: vídeo em cima e chat sempre aberto</option>
+        </select>
+      </div>
       <div class="srow inline"><label for="setNotices">Avisos de entrada e saída</label><input type="checkbox" id="setNotices"></div>
-      <div class="hint">Dica: dê duplo clique em um participante para fixá-lo no modo foco.</div>
+      <div class="hint">O visual só muda a sua tela. Dica: dê duplo clique em alguém para colocá-lo em destaque.</div>
     </section>
   </div>
 </aside>
@@ -644,7 +716,7 @@ const DEFAULT_PREFS = {
   noise: 'ai',            // 'ai' (RNNoise) | 'browser' | 'off'
   echo: true, agc: true, gain: 100, gateOn: false, gateThr: -50,
   res: 1080, fps: 30, screenMode: 'detail', screenAudio: false,
-  shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60, reactBar: true
+  shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60, reactBar: true, visual: 'auto'
 };
 function loadPrefs() {
   try { return Object.assign({}, DEFAULT_PREFS, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); }
@@ -2054,10 +2126,13 @@ function notify(msg, important) {
   setTimeout(() => d.remove(), 3500);
 }
 
-// ================= v10: layouts (grade / foco / lateral) =================
+// ================= visuais da sala: Cinema, Roda e Ao vivo =================
+// Cada pessoa escolhe o próprio visual (só muda a tela dela). "auto": celular → Ao vivo;
+// computador → Cinema quando alguém compartilha a tela, Roda quando é só conversa.
 let pinnedId = null;
-const LAYOUTS = ['grid', 'focus', 'side'];
-const LAYOUT_LABEL = { grid: 'Grade', focus: 'Foco', side: 'Lateral' };
+const VISUALS = ['auto', 'cinema', 'roda', 'live'];
+const VISUAL_LABEL = { auto: 'Automático', cinema: 'Cinema', roda: 'Roda', live: 'Ao vivo' };
+const phoneQuery = window.matchMedia ? window.matchMedia('(max-width: 700px)') : { matches: false };
 function focusTileId() {
   if (pinnedId && document.getElementById(pinnedId)) return pinnedId;
   const sharer = Object.keys(peerStates).find((pid) => peerStates[pid].screen && document.getElementById('tile-' + pid));
@@ -2065,23 +2140,46 @@ function focusTileId() {
   if (sharingScreen) return 'tile-local';
   return null;
 }
+function chosenVisual() { return VISUALS.includes(prefs.visual) ? prefs.visual : 'auto'; }
+function currentVisual(fid) {
+  const v = chosenVisual();
+  if (v !== 'auto') return v;
+  if (phoneQuery.matches) return 'live';
+  return fid ? 'cinema' : 'roda';
+}
 function applyLayout() {
   const grid = $('grid');
   if (!grid) return;
-  const mode = LAYOUTS.includes(prefs.layout) ? prefs.layout : 'grid';
-  const fid = mode === 'grid' ? null : focusTileId();   // sem nada para focar, volta a ser grade
-  grid.classList.toggle('layout-focus', mode === 'focus' && !!fid);
-  grid.classList.toggle('layout-side', mode === 'side' && !!fid);
+  const fid = focusTileId();   // tela compartilhada (ou quem foi fixado) vira o palco
+  const v = currentVisual(fid);
+  ['cinema', 'roda', 'live'].forEach((n) => document.body.classList.toggle('v-' + n, n === v));
+  grid.classList.toggle('has-stage', !!fid);
   grid.querySelectorAll('.tile').forEach((t) => { t.classList.toggle('focus', !!fid && t.id === fid); t.classList.toggle('pinned', t.id === pinnedId); });
-  $('layoutBtn').innerHTML = icon(mode) + LAYOUT_LABEL[mode];
+  placeChat(v === 'live');
+  const auto = chosenVisual() === 'auto';
+  $('visualBtn').innerHTML = icon(v === 'cinema' ? 'cinema' : v === 'live' ? 'live' : 'roda') + '<span class="txt">' + (auto ? 'Automático · ' : '') + VISUAL_LABEL[v] + '</span>';
+  $('setVisual').value = chosenVisual();
 }
-function cycleLayout() {
-  prefs.layout = LAYOUTS[(LAYOUTS.indexOf(prefs.layout) + 1) % LAYOUTS.length];
-  savePrefs(); applyLayout();
-  if (prefs.layout !== 'grid' && !focusTileId()) toast('Dê duplo clique em um participante para fixá-lo em destaque (ou aguarde alguém compartilhar a tela).');
+function setVisual(v) {
+  prefs.visual = v; savePrefs(); applyLayout();
+  toast('Visual: ' + VISUAL_LABEL[v] + (v === 'auto' ? ' (' + VISUAL_LABEL[currentVisual(focusTileId())] + ' agora)' : ''));
 }
+function cycleVisual() { setVisual(VISUALS[(VISUALS.indexOf(chosenVisual()) + 1) % VISUALS.length]); }
 function togglePin(tid) { pinnedId = (pinnedId === tid) ? null : tid; applyLayout(); }
-$('layoutBtn').onclick = cycleLayout;
+$('visualBtn').onclick = cycleVisual;
+$('setVisual').onchange = (e) => setVisual(e.target.value);
+if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', applyLayout);
+
+// No Ao vivo o chat fica sempre aberto, embaixo das pessoas; nos outros visuais é o painel flutuante
+let chatDocked = false;
+function placeChat(dock) {
+  if (dock === chatDocked || theater) return;   // na tela cheia o chat está dentro do vídeo; ajeita quando sair
+  chatDocked = dock;
+  const p = $('chatPanel');
+  if (dock) { $('callScreen').insertBefore(p, $('controls')); p.classList.remove('closed'); chatUnread = 0; renderChatBadge(); }
+  else { document.body.insertBefore(p, $('settingsOverlay')); p.classList.add('closed'); }
+  $('chatBtn').classList.toggle('active', dock);
+}
 
 // ================= v10: diagnóstico (getStats real) =================
 const statsPrev = {};   // peerId -> última amostra (para calcular taxas)
@@ -2347,7 +2445,7 @@ $('setShortcutBtn').onclick = () => {
   };
   document.addEventListener('keydown', handler, true);
 };
-$('layoutBtn').title = 'Alternar layout: grade / foco / lateral (duplo clique em um tile fixa o destaque)';
+$('visualBtn').title = 'Trocar o visual da sala: Automático, Cinema, Roda ou Ao vivo (só muda a sua tela)';
 
 // Estado inicial da tela de entrada: nome salvo e pré-carregamento do filtro de IA (não atrapalha a abertura da página)
 if (prefs.name) $('nameInput').value = prefs.name;
@@ -2395,6 +2493,7 @@ async function enterTheater(tile) {
   theater = { tile, rot: 0, fs: false };
   tile.classList.add('theater');
   moveOverlays(tile);
+  if (chatDocked) $('chatPanel').classList.add('closed');   // na tela cheia o chat do Ao vivo começa fechado
   document.body.classList.add('theater-open');
   layoutTheater();
   let locked = false;
@@ -2436,7 +2535,9 @@ function exitTheater() {
   const t = theater.tile;
   theater = null;
   moveOverlays(null);
+  if (chatDocked) $('chatPanel').classList.remove('closed');
   t.classList.remove('theater');
+  setTimeout(applyLayout, 0);   // o visual pode ter mudado durante a tela cheia (ex.: chat do Ao vivo)
   t.style.width = ''; t.style.height = ''; t.style.transform = ''; t.style.transformOrigin = '';
   document.body.classList.remove('theater-open');
   try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
@@ -2658,6 +2759,8 @@ function renderMusic() {
   $('musicBy').textContent = t ? 'Adicionada por ' + t.by : '';
   $('musicPlay').innerHTML = icon(music.playing ? 'pause' : 'play');
   $('musicBtn').classList.toggle('active', !$('musicPanel').classList.contains('closed') || music.playing);
+  $('nowPlaying').classList.toggle('show', !!t && music.playing && $('musicPanel').classList.contains('closed'));
+  $('nowPlayingText').textContent = t ? (t.title || t.id) : '';
   if (!music.playing) $('musicUnlock').style.display = 'none';
   const ol = $('musicQueue');
   ol.textContent = '';
@@ -2690,6 +2793,7 @@ function toggleMusicPanel(force) {
 }
 
 $('musicBtn').onclick = () => toggleMusicPanel();
+$('nowPlaying').onclick = () => toggleMusicPanel(true);
 $('musicClose').onclick = () => toggleMusicPanel(false);
 $('musicPlay').onclick = () => musicCommand({ cmd: music.playing ? 'pause' : 'play' });
 $('musicNext').onclick = () => musicCommand({ cmd: 'next' });
@@ -2736,8 +2840,12 @@ function sendRoom(msg) {
   else safeSend(conns[hostId()], msg);
 }
 
-function chatOpen() { return !$('chatPanel').classList.contains('closed'); }
+function chatOpen() { return (chatDocked && !theater) || !$('chatPanel').classList.contains('closed'); }
 function toggleChat(force) {
+  if (chatDocked && !theater) {   // Ao vivo: o chat não fecha, só ganha ou perde o foco
+    if (force === false) $('chatInput').blur(); else $('chatInput').focus();
+    return;
+  }
   const open = typeof force === 'boolean' ? force : !chatOpen();
   $('chatPanel').classList.toggle('closed', !open);
   $('chatBtn').classList.toggle('active', open);
@@ -2818,7 +2926,7 @@ function sendReaction(i) {
   const now = Date.now();
   if (now - lastReactAt < 250) return;
   lastReactAt = now;
-  showReaction(i, myName);
+  showReaction(i, myName, 'local');
   sendRoom({ type: 'react', i });
 }
 function receiveReaction(from, msg) {
@@ -2829,9 +2937,16 @@ function receiveReaction(from, msg) {
     reactSeen[from] = now;
     relay(from, { type: 'react', i: msg.i });
   }
-  showReaction(msg.i, nameOf(from));
+  showReaction(msg.i, nameOf(from), from);
 }
-function showReaction(i, name) {
+function showReaction(i, name, pid) {
+  const tile = document.getElementById(pid === 'local' ? 'tile-local' : 'tile-' + pid);
+  if (tile) {
+    const old = tile.querySelector('.rbubble'); if (old) old.remove();
+    const b = document.createElement('span'); b.className = 'rbubble'; b.textContent = REACTIONS[i];
+    tile.appendChild(b);
+    b.addEventListener('animationend', () => b.remove());
+  }
   const layer = $('reactLayer');
   if (layer.children.length >= 40) layer.firstChild.remove();
   const f = document.createElement('div'); f.className = 'fly';
