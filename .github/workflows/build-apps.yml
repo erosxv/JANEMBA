@@ -7,14 +7,12 @@ on:
   workflow_dispatch:
   push:
     tags: ['v*']
-    branches: ['ci-android']   # teste do Android sem gerar Release
 
 permissions:
   contents: write
 
 jobs:
   desktop:
-    if: github.ref != 'refs/heads/ci-android'
     strategy:
       matrix:
         include:
