@@ -369,26 +369,23 @@
   #genRoomBtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
   #settingsPanel header h2 { display: inline-flex; align-items: center; gap: 8px; }
   /* ================= visuais da sala: Cinema, Roda e Ao vivo ================= */
-  /* pessoas viram bolinhas (em todos os visuais); quem fala ganha um anel verde */
-  #grid .tile:not(.focus) { background: transparent; border: none; border-radius: 0; aspect-ratio: auto; overflow: visible; flex-direction: column; gap: 6px; padding: 10px 4px 6px; box-shadow: none; }
+  /* participantes em cartões (em todos os visuais); a tela compartilhada continua sendo o palco */
+  #grid .tile:not(.focus) { width: var(--card-w, 242px); height: var(--card-h, 178px); aspect-ratio: auto; background: #151a24; border: 1px solid #232a37; border-radius: 16px; overflow: visible; flex-direction: column; padding: 0; box-shadow: none; transition: border-color .15s ease, box-shadow .15s ease; }
   #grid .tile:not(.focus) video { display: none !important; }
-  #grid .tile:not(.focus) .avatar { display: flex !important; width: var(--av, 88px); height: var(--av, 88px); font-size: calc(var(--av, 88px) * .34); margin: 0; transition: box-shadow .15s ease; }
-  #grid .tile.speaking:not(.focus) .avatar { box-shadow: 0 0 0 3px #3ecf8e, 0 0 0 8px rgba(62,207,142,.16); }
-  #grid .tile:not(.focus) .tag { position: static; background: none; padding: 0; font-size: 13px; color: #c9ccd1; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #grid .tile:not(.focus) .volbar, #grid .tile:not(.focus) .screen-badge, #grid .tile:not(.focus) .tile-actions { display: none !important; }
-  #grid .tile:not(.focus) .vol-control { top: 0; right: 0; opacity: 0; transition: opacity .15s ease; }
+  #grid .tile:not(.focus) .avatar { display: flex !important; width: var(--av, 64px); height: var(--av, 64px); font-size: calc(var(--av, 64px) * .36); margin: 0 0 var(--av-gap, 18px); background: var(--av-bg, #2a3558); color: var(--av-fg, #c7d4ff); }
+  #grid .tile:not(.focus) .screen-badge, #grid .tile:not(.focus) .tile-actions { display: none !important; }
+  #grid .tile:not(.focus) .vol-control { opacity: 0; transition: opacity .15s ease; }
   #grid .tile:not(.focus):hover .vol-control, #grid .tile:not(.focus):focus-within .vol-control { opacity: 1; }
-  #grid .tile:not(.focus) .state-badges { position: static; flex-direction: row; justify-content: center; }
-  #grid .tile.focus { border-radius: 14px; aspect-ratio: auto; order: -1; }   /* o palco vem sempre primeiro */
-  /* sem palco: bolinhas no centro */
-  #grid:not(.has-stage) { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 24px 32px; }
-  #grid:not(.has-stage) .tile { width: 132px; }
+  #grid .tile:not(.focus) .state-badges { top: 10px; }
+  #grid .tile.focus { border-radius: 16px; aspect-ratio: auto; order: -1; }   /* o palco vem sempre primeiro */
+  /* sem palco: cartões no centro */
+  #grid:not(.has-stage) { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 14px; }
   /* Cinema: palco grande, pessoas numa coluna fina, barra de botões flutuante que some com o mouse parado */
   body.v-cinema #callScreen { height: 100dvh; }
   body.v-cinema #grid { min-height: 0; }
-  body.v-cinema #grid.has-stage { display: grid; grid-template-columns: minmax(0, 1fr) 104px; grid-template-rows: repeat(8, min-content) minmax(0, 1fr); gap: 2px 12px; padding: 12px; overflow: hidden; }
+  body.v-cinema #grid.has-stage { display: grid; grid-template-columns: minmax(0, 1fr) 168px; grid-template-rows: repeat(8, min-content) minmax(0, 1fr); gap: 2px 12px; padding: 12px; overflow: hidden; }
   body.v-cinema #grid.has-stage .tile.focus { grid-column: 1; grid-row: 1 / -1; height: 100%; }
-  body.v-cinema #grid.has-stage .tile:not(.focus) { grid-column: 2; --av: 56px; padding: 6px 2px; }
+  body.v-cinema #grid.has-stage .tile:not(.focus) { grid-column: 2; --card-w: 100%; --card-h: 104px; --av: 40px; --av-gap: 22px; margin-bottom: 8px; }
   body.v-cinema #grid.has-stage .tile:not(.focus) .tag { font-size: 11px; }
   body.v-cinema #grid.has-stage .tile:not(.focus) .sbadge, body.v-live #grid.has-stage .tile:not(.focus) .sbadge { font-size: 10px; white-space: nowrap; padding: 1px 5px; }
   body.v-cinema #controls { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); padding: 8px 10px; border: 1px solid #2a2e37; border-radius: 22px; background: rgba(20,22,28,.94); z-index: 900; transition: opacity .4s ease; }
@@ -397,16 +394,16 @@
   /* Roda: bolinhas grandes; se alguém compartilhar a tela, ela aparece em cima */
   body.v-roda #grid.has-stage { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 6px 28px; }
   body.v-roda #grid.has-stage .tile.focus { flex: 0 0 100%; height: calc(100dvh - 330px); min-height: 240px; }
-  body.v-roda #grid.has-stage .tile:not(.focus) { --av: 64px; width: 110px; }
+  body.v-roda #grid.has-stage .tile:not(.focus) { --card-w: 180px; --card-h: 124px; --av: 46px; }
   /* Ao vivo (celular): vídeo em cima, pessoas numa linha, chat sempre aberto embaixo */
   body.v-live #callScreen { height: 100dvh; min-height: 0; }
   body.v-live #topbar { padding: 8px 12px; flex-wrap: nowrap; }
   body.v-live #topbar .txt, body.v-live #netBadge { display: none !important; }
-  body.v-live #grid { flex: none; max-height: 56dvh; overflow-y: auto; gap: 4px 10px; padding: 10px; }
-  body.v-live #grid:not(.has-stage) .tile { width: 96px; --av: 64px; }
+  body.v-live #grid { flex: none; max-height: 56dvh; overflow-y: auto; gap: 10px; padding: 10px; }
+  body.v-live #grid:not(.has-stage) .tile { --card-w: calc(50% - 7px); --card-h: 132px; --av: 52px; }
   body.v-live #grid.has-stage { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; }
   body.v-live #grid.has-stage .tile.focus { flex: 0 0 100%; aspect-ratio: 16 / 9; height: auto; border-radius: 12px; }
-  body.v-live #grid.has-stage .tile:not(.focus) { --av: 40px; width: 68px; padding: 6px 0 2px; }
+  body.v-live #grid.has-stage .tile:not(.focus) { --card-w: calc(33.333% - 7px); --card-h: 88px; --av: 34px; --av-gap: 20px; }
   body.v-live #grid.has-stage .tile:not(.focus) .tag { font-size: 11px; }
   body.v-live:not(.theater-open) #chatPanel { position: static; flex: 1; min-height: 120px; width: auto; height: auto; border: none; border-top: 1px solid #2a2e37; border-radius: 0; background: #0f1115; z-index: auto; }
   body.v-live:not(.theater-open) #chatPanel .chead { display: none; }
@@ -417,7 +414,7 @@
   body.v-live #grid .tile.focus .screen-badge, body.v-live #grid .tile.focus .state-badges { display: none !important; }
   body.v-live:not(.theater-open) #notices { display: none; }
   /* reação aparece em cima de quem reagiu */
-  .tile .rbubble { position: absolute; top: -4px; left: 50%; font-size: 28px; line-height: 1; pointer-events: none; z-index: 4; animation: rbub 1.8s ease-out forwards; }
+  .tile .rbubble { position: absolute; top: -14px; left: 50%; font-size: 28px; line-height: 1; pointer-events: none; z-index: 4; animation: rbub 1.8s ease-out forwards; }
   @keyframes rbub { 0% { transform: translate(-50%, 6px) scale(.4); opacity: 0; } 15% { transform: translate(-50%, -6px) scale(1.15); opacity: 1; } 70% { opacity: 1; } 100% { transform: translate(-50%, -22px) scale(1); opacity: 0; } }
   /* música tocando: cartãozinho no canto (Cinema e Roda) */
   #nowPlaying { position: fixed; left: 16px; bottom: 96px; z-index: 800; display: none; align-items: center; gap: 8px; max-width: min(300px, calc(100vw - 32px)); padding: 8px 12px; border-radius: 12px; border: 1px solid #2a2e37; background: rgba(20,22,28,.94); color: #c9ccd1; font-size: 12px; font-weight: 400; transition: opacity .4s ease; }
@@ -438,6 +435,78 @@
     #joinScreen { padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
     #settingsPanel header { padding-top: max(14px, env(safe-area-inset-top)); }
     .tile.theater .tile-actions { bottom: max(8px, env(safe-area-inset-bottom)); right: max(8px, env(safe-area-inset-right)); }
+  }
+  /* ================= redesign: cartões, barra com legendas e cabeçalho ================= */
+  /* nome em pílula no canto do cartão; reticências só quando não cabe */
+  .tile .tag { left: 10px; bottom: 10px; display: flex; align-items: center; gap: 6px; max-width: calc(100% - 20px); padding: 4px 10px; border-radius: 999px; background: rgba(10,13,19,.72); font-size: 12px; }
+  .tile .tag .nm { flex: 0 1 auto; min-width: 2.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: #f2f4f8; }
+  .tile .tag .st { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #8b93a3; white-space: nowrap; }   /* a situação encolhe antes do nome */
+  .tile .tag .st:empty { display: none; }
+  /* mini equalizador de quem fala (altura segue o nível de áudio já medido) */
+  .tile .tag .eq { display: none; flex: none; align-items: flex-end; gap: 2px; height: 12px; }
+  .tile .tag .eq i { width: 2px; border-radius: 1px; background: #3ddc97; transition: height .08s linear; }
+  .tile .tag .eq i:nth-child(1) { height: calc(3px + var(--lvl, 0) * 7px); }
+  .tile .tag .eq i:nth-child(2) { height: calc(4px + var(--lvl, 0) * 8px); }
+  .tile .tag .eq i:nth-child(3) { height: calc(3px + var(--lvl, 0) * 5px); }
+  .tile.speaking .tag .eq { display: inline-flex; }
+  /* microfone no canto: vermelho quando mutado, verde quando fala */
+  .tile .micst { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(10,13,19,.6); color: #c9ccd1; }
+  .tile .micst .ic { width: 13px; height: 13px; }
+  .tile.is-muted .micst { background: #e5484d; color: #fff; }
+  .tile.speaking .micst { color: #3ddc97; }
+  .tile.theater .micst { display: none; }
+  .tile .vol-control { right: 42px; }
+  .tile .volbar { display: none; }
+  .tile.speaking { border-color: #3ddc97 !important; box-shadow: 0 0 0 1px #3ddc97, 0 0 22px rgba(61,220,151,.28) !important; }
+  /* barra de controles: botões com legenda, em grupos, "Sair" separado */
+  #controls { align-self: center; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; width: fit-content; max-width: calc(100% - 24px); margin: 0 auto 6px; padding: 8px 10px; border: 1px solid #222937; border-radius: 18px; background: #121722; }
+  .cgroup { display: flex; gap: 2px; }
+  .cdiv { width: 1px; height: 30px; background: #232a37; margin: 0 6px; }
+  #controls .ctrl-btn, #controls .ctrl-btn.active, #controls .ctrl-btn.off, #controls .ctrl-btn.leave { width: auto; min-width: 50px; height: auto; padding: 2px 4px; border: none; border-radius: 10px; background: none; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #e6e8eb; transform: none; }
+  #controls .ctrl-btn .cb-ic { position: relative; width: 36px; height: 34px; border-radius: 10px; border: 1px solid #262e3d; background: #1c2230; display: flex; align-items: center; justify-content: center; transition: background .15s ease, border-color .15s ease, transform .08s ease; }
+  #controls .ctrl-btn:hover .cb-ic { background: #242b3b; border-color: #313a4d; }
+  #controls .ctrl-btn:active .cb-ic { transform: scale(.94); }
+  #controls .ctrl-btn .ic { width: 18px; height: 18px; }
+  #controls .cb-lbl { font-size: 10.5px; font-weight: 500; color: #9aa3b2; white-space: nowrap; }
+  #controls .ctrl-btn.active .cb-ic { background: #5b8cff; border-color: #5b8cff; color: #fff; }
+  #controls .ctrl-btn.active .cb-lbl { color: #c9d6ff; }
+  #controls #micBtn.active .cb-ic { background: #1c2230; border-color: #262e3d; color: #e6e8eb; }
+  #controls #micBtn.active .cb-lbl { color: #9aa3b2; }
+  #controls .ctrl-btn.off .cb-ic { background: #e5484d; border-color: #e5484d; color: #fff; }
+  #controls .ctrl-btn.off .cb-lbl { color: #ff8a8d; }
+  #controls .ctrl-btn.on .cb-ic { color: #8fb0ff; border-color: #3d4a6b; }
+  #controls .ctrl-btn.leave { min-width: 62px; }
+  #controls .ctrl-btn.leave .cb-ic { width: 46px; background: #e5484d; border-color: #e5484d; color: #fff; }
+  #controls .ctrl-btn.leave:hover .cb-ic { background: #f05a5f; border-color: #f05a5f; }
+  #controls .ctrl-btn.leave .cb-lbl { color: #ff6b6f; }
+  #controls #chatBadge { top: -7px; right: -8px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; border: 2px solid #121722; background: #5b8cff; color: #fff; font-size: 10px; font-weight: 700; line-height: 14px; text-align: center; }
+  body.v-cinema #controls { margin: 0; border-radius: 18px; background: rgba(18,23,34,.95); }
+  body.v-live #controls #chatBtn { display: none; }   /* no Ao vivo o chat já fica aberto */
+  body.v-live #grid.has-stage .tile:not(.focus) .tag .st { display: none; }
+  /* cabeçalho: chip da sala, pessoas + conexão, seletor de visual e "Copiar link" */
+  #topbar { background: #0f131b; border-bottom: 1px solid #1c2230; }
+  .roomInfo { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+  .roomChip { display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 11px; border-radius: 10px; border: 1px solid #232a37; background: #151a24; font-size: 12px; color: #8b93a3; }
+  .roomChip b { font-size: 14px; color: #f2f4f8; }
+  .roomMeta { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #9aa3b2; white-space: nowrap; }
+  .cdot { width: 8px; height: 8px; border-radius: 50%; background: #3ddc97; flex: none; }
+  .cdot.warn { background: #f5b942; } .cdot.bad { background: #ff6b6b; }
+  #topbar #netBadge { padding: 0; border: none; border-radius: 0; background: none; color: #9aa3b2; font-size: 12px; font-weight: 400; }
+  #topbar #netBadge::before { content: '·'; margin: 0 6px 0 2px; }
+  #topbar #netBadge:hover { color: #c9ccd1; opacity: 1; }
+  #topbar #netBadge.warn { color: #f5b942; } #topbar #netBadge.bad { color: #ff6b6b; }
+  #visualBtn { height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #232a37; background: #151a24; font-weight: 600; }
+  #copyLinkBtn { height: 38px; padding: 0 14px; border-radius: 10px; background: #7c9bff; color: #0b1430; font-weight: 600; }
+  #copyLinkBtn:hover { background: #8fa9ff; opacity: 1; }
+  /* celular: cartões e barra quebram em linhas, sem rolagem para o lado */
+  @media (max-width: 520px) {
+    #grid:not(.has-stage) .tile:not(.focus) { --card-w: calc(50% - 7px); --card-h: 140px; --av: 52px; }
+    .cdiv { display: none; }
+    #controls { gap: 2px; padding: 6px; max-width: calc(100% - 16px); border-radius: 16px; }
+    #controls .ctrl-btn, #controls .ctrl-btn.active, #controls .ctrl-btn.off, #controls .ctrl-btn.leave { min-width: 44px; padding: 2px; }
+    #controls .ctrl-btn.leave { min-width: 54px; }
+    #controls .cb-lbl { font-size: 10px; }
+    #topbar { gap: 8px; }
   }
   /* menu de visual (lista suspensa no topo) */
   .vwrap { position: relative; }
@@ -555,29 +624,27 @@
 
 <div id="callScreen">
   <div id="topbar">
-    <div class="roomInfo">Sala: <b id="roomLabel"></b> &nbsp;•&nbsp; <span id="peerCount">1</span> na chamada</div>
+    <div class="roomInfo"><span class="roomChip"><span>Sala</span><b id="roomLabel"></b></span><span class="roomMeta"><span id="netDot" class="cdot"></span><span><span id="peerCount">1</span> na chamada</span><button id="netBadge" title="Qualidade da conexão: clique para ver os detalhes"></button></span></div>
     <div class="topActions">
-      <button id="netBadge" title="Qualidade da conexão — clique para ver os detalhes"></button>
       <div class="vwrap"><button id="visualBtn" class="top-btn" title="Visual da sala (só muda a sua tela)" aria-haspopup="menu" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="txt">Automático</span></button><div id="visualMenu" class="vmenu" role="menu" aria-label="Visual da sala" hidden><button class="vitem" data-v="cinema" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-cinema"/></svg><span class="vtx"><b>Cinema</b><small>A tela compartilhada em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="roda" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="vtx"><b>Roda</b><small>As pessoas em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="live" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-live"/></svg><span class="vtx"><b>Ao vivo</b><small>Vídeo em cima, chat embaixo</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><div class="vsep"></div><label class="vauto"><span>Escolher sozinho<small>Celular: Ao vivo · computador: Cinema ou Roda</small></span><input type="checkbox" id="visualAuto" role="switch"></label></div></div>
-      <button id="copyLinkBtn" title="Copiar link de convite"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="txt">Copiar link de convite</span></button>
+      <button id="copyLinkBtn" title="Copiar link de convite"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="txt">Copiar link</span></button>
     </div>
   </div>
   <div id="micAlert"><span id="micAlertText"></span><button id="micAlertBtn"></button></div>
   <div id="grid"></div>
   <div id="controls">
-    <button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
-    <button id="screenBtn" class="ctrl-btn" title="Compartilhar tela"><svg class="ic" aria-hidden="true"><use href="#i-screen"/></svg></button>
-    <button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></button>
-    <button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span id="chatBadge"></span></button>
-    <button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg></button>
-    <button id="fsBtn" class="ctrl-btn" title="Tela cheia (F)"><svg class="ic" aria-hidden="true"><use href="#i-maximize"/></svg></button>
-    <button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button>
-    <button id="leaveBtn" class="ctrl-btn leave" title="Sair"><svg class="ic" aria-hidden="true"><use href="#i-phone-off"/></svg></button>
+    <div class="cgroup"><button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="cb-lbl">Mic</span></button><button id="screenBtn" class="ctrl-btn" title="Compartilhar tela"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-screen"/></svg></span><span class="cb-lbl">Tela</span></button><button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></span><span class="cb-lbl">Música</span></button></div>
+    <span class="cdiv"></span>
+    <div class="cgroup"><button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span id="chatBadge"></span></span><span class="cb-lbl">Chat</span></button><button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg></span><span class="cb-lbl">Reações</span></button></div>
+    <span class="cdiv"></span>
+    <div class="cgroup"><button id="fsBtn" class="ctrl-btn" title="Tela cheia (F)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-maximize"/></svg></span><span class="cb-lbl">Tela cheia</span></button><button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></span><span class="cb-lbl">Ajustes</span></button></div>
+    <span class="cdiv"></span>
+    <button id="leaveBtn" class="ctrl-btn leave" title="Sair da chamada"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-phone-off"/></svg></span><span class="cb-lbl">Sair</span></button>
   </div>
   <button id="nowPlaying" title="Abrir a música da sala"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg><span id="nowPlayingText"></span></button>
   <div id="reactBar" aria-label="Reações"></div>
   <div id="reactLayer"></div>
-  <div id="shortcutHint" style="text-align:center;font-size:11px;color:#6b7280;padding-bottom:10px;background:#14161c;">Atalho: tecla <b>M</b> muta/desmuta</div>
+  <div id="shortcutHint" style="text-align:center;font-size:11px;color:#6b7280;padding-bottom:10px;">Atalho: tecla <b>M</b> muta/desmuta</div>
 </div>
 
 <div id="notices"></div>
@@ -1052,7 +1119,7 @@ function enterCallUI() {
 
 function showMediaBanner() {
   if (document.getElementById('mediaBanner')) return;
-  $('micBtn').innerHTML = icon('mic-off'); $('micBtn').classList.add('off'); $('micBtn').classList.remove('active');
+  setCtrlIcon('micBtn', 'mic-off'); $('micBtn').classList.add('off'); $('micBtn').classList.remove('active');
   const banner = document.createElement('div');
   banner.id = 'mediaBanner';
   banner.innerHTML =
@@ -1069,7 +1136,7 @@ async function enableMic() {
     localStream = await acquireMicStream();
     hasMic = true; micOn = true;
     await attachMicTrack(localStream.getAudioTracks()[0]);
-    $('micBtn').innerHTML = icon('mic');
+    setCtrlIcon('micBtn', 'mic');
     $('micBtn').classList.add('active'); $('micBtn').classList.remove('off');
     applyMicGain();
     // Não precisa refazer as chamadas: a faixa de áudio enviada já existe desde a entrada e agora passa a ter o mic.
@@ -1100,7 +1167,8 @@ $('copyLinkBtn').onclick = () => {
 };
 
 function initials(name) {
-  return (name || "?").trim().slice(0, 2).toUpperCase();
+  const w = String(name || '?').trim().split(/\s+/).filter(Boolean);
+  return (w.length > 1 ? [...w[0]][0] + [...w[1]][0] : [...(w[0] || '?')].slice(0, 2).join('')).toUpperCase();
 }
 
 function addLocalTile() {
@@ -1112,10 +1180,9 @@ function addLocalTile() {
   video.autoplay = true; video.muted = true; video.playsInline = true;
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
-  avatar.textContent = initials(myName);
   const tag = document.createElement('div');
   tag.className = 'tag';
-  tag.textContent = myName + " (você)";
+  buildTag(tag);
   const volbar = document.createElement('div');
   volbar.className = 'volbar';
   volbar.innerHTML = '<div class="volfill"></div>';
@@ -1125,7 +1192,9 @@ function addLocalTile() {
   myVolControl.innerHTML = '<span>' + icon('mic') + '</span><input type="range" id="myMicVolSlider" min="0" max="200" value="' + micVolumePercent + '">';
   myVolControl.querySelector('input').oninput = (e) => setMicVolume(Number(e.target.value), 'tile');
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(myVolControl);
+  const mic = document.createElement('div'); mic.className = 'micst'; tile.appendChild(mic);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
+  setTileName(tile, myName);
   tile.addEventListener('dblclick', (e) => { if (!e.target.closest('.vol-control, .tile-actions')) togglePin('tile-local'); });
   $('grid').appendChild(tile);
   updateCount();
@@ -1146,10 +1215,9 @@ function addRemoteTile(peerId, name) {
   video.autoplay = true; video.playsInline = true;
   const avatar = document.createElement('div');
   avatar.className = 'avatar';
-  avatar.textContent = initials(name);
   const tag = document.createElement('div');
   tag.className = 'tag';
-  tag.textContent = name || "Participante";
+  buildTag(tag);
   const volbar = document.createElement('div');
   volbar.className = 'volbar';
   volbar.innerHTML = '<div class="volfill"></div>';
@@ -1169,7 +1237,9 @@ function addRemoteTile(peerId, name) {
   actions.querySelector('.act-exit').onclick = exitTheater;
   tile.appendChild(actions);
   const sbadge = document.createElement('div'); sbadge.className = 'screen-badge'; sbadge.innerHTML = icon('monitor') + 'compartilhando tela'; tile.appendChild(sbadge);
+  const mic = document.createElement('div'); mic.className = 'micst'; tile.appendChild(mic);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
+  setTileName(tile, name || 'Participante');
   tile.addEventListener('dblclick', (e) => { if (!e.target.closest('.vol-control, .tile-actions')) togglePin('tile-' + peerId); });
   applySink(video);
   $('grid').appendChild(tile);
@@ -1230,6 +1300,21 @@ function listenForGuests() {
 
 // Ícone do sprite no topo da página (nome fixo, nunca vem de fora)
 function icon(name) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + name + '"/></svg>'; }
+// Troca só o ícone de um botão da barra (a legenda embaixo fica)
+function setCtrlIcon(id, name) { $(id).querySelector('.cb-ic').innerHTML = icon(name); }
+
+// Cartão: pílula do nome (nome, situação e mini equalizador) e cor do avatar, sempre a mesma para o mesmo nome
+const AV_COLORS = [['#2a3558', '#c7d4ff'], ['#1f4a45', '#b9f3e2'], ['#47305c', '#ecd3ff'], ['#4d3a1f', '#ffe1b0'], ['#4f2a36', '#ffc9d6'], ['#283e55', '#c4e3ff']];
+function buildTag(tag) { tag.innerHTML = '<span class="nm"></span><span class="st"></span><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>'; }
+function setTileName(tile, name) {
+  tile.querySelector('.tag .nm').textContent = name;
+  tile.querySelector('.tag .nm').title = name;
+  tile.querySelector('.avatar').textContent = initials(name);
+  let hsh = 0;
+  for (const c of String(name)) hsh = (hsh * 31 + c.codePointAt(0)) >>> 0;
+  const [bg, fg] = AV_COLORS[hsh % AV_COLORS.length];
+  tile.style.setProperty('--av-bg', bg); tile.style.setProperty('--av-fg', fg);
+}
 
 function safeSend(conn, msg) { try { if (conn && conn.open) conn.send(msg); } catch (e) {} }
 
@@ -1345,8 +1430,7 @@ function handleData(fromId, msg) {
 function updateTileName(peerId) {
   const tile = document.getElementById('tile-' + peerId);
   if (tile && remoteNames[peerId]) {
-    tile.querySelector('.tag').textContent = remoteNames[peerId];
-    tile.querySelector('.avatar').textContent = initials(remoteNames[peerId]);
+    setTileName(tile, remoteNames[peerId]);
   }
 }
 
@@ -1414,6 +1498,7 @@ function attachVolumeMeter(stream, tileId) {
     if (!muted && db > SPEAK_OPEN_DB) m.until = now + 250;
     const fill = tile.querySelector('.volfill');
     if (fill) fill.style.width = (level * 100) + '%';
+    tile.style.setProperty('--lvl', level.toFixed(2));
     tile.classList.toggle('speaking', !muted && now < m.until);
     m.raf = requestAnimationFrame(loop);
   }
@@ -1594,8 +1679,12 @@ function renderBadges(pid) {
   box.textContent = '';
   const add = (cls, ic, text) => { const d = document.createElement('div'); d.className = 'sbadge ' + cls; d.innerHTML = icon(ic); d.append(text); box.appendChild(d); };
   const st = pid === 'local' ? myState() : (peerStates[pid] || { mic: true });
-  if (pid === 'local' && !hasMic) add('muted', 'mic-off', 'sem microfone');
-  else if (!st.mic) add('muted', 'mic-off', 'mutado');
+  const muted = !st.mic;
+  tile.classList.toggle('is-muted', muted);
+  const mic = tile.querySelector('.micst');
+  if (mic) { mic.innerHTML = icon(muted ? 'mic-off' : 'mic'); mic.title = pid === 'local' && !hasMic ? 'Você entrou sem microfone' : muted ? 'Microfone desligado' : 'Microfone ligado'; }
+  const stx = tile.querySelector('.tag .st');
+  if (stx) stx.textContent = pid === 'local' ? '(você)' : (muted ? 'no mudo' : '');
   if (pid !== 'local') {
     if (tile.classList.contains('reconnecting')) add('warn', 'refresh', 'reconectando…');
     else if (peerHealth[pid] && peerHealth[pid].level === 'bad') add('bad', 'alert', 'conexão ruim');
@@ -1631,7 +1720,7 @@ function toggleMic() {
   applyMicGain();
   $('micBtn').classList.toggle('active', micOn);
   $('micBtn').classList.toggle('off', !micOn);
-  $('micBtn').innerHTML = icon(micOn ? 'mic' : 'mic-off');
+  setCtrlIcon('micBtn', micOn ? 'mic' : 'mic-off');
   sendMyState();
   updateMicAlert();
 }
@@ -2195,11 +2284,19 @@ function applyLayout() {
   grid.classList.toggle('has-stage', !!fid);
   grid.querySelectorAll('.tile').forEach((t) => { t.classList.toggle('focus', !!fid && t.id === fid); t.classList.toggle('pinned', t.id === pinnedId); });
   placeChat(v === 'live');
+  placeReactBar();
   const auto = chosenVisual() === 'auto';
-  $('visualBtn').innerHTML = icon(v === 'cinema' ? 'cinema' : v === 'live' ? 'live' : 'roda') + '<span class="txt">' + (auto ? 'Automático · ' : '') + VISUAL_LABEL[v] + '</span>' + icon('chevron');
+  $('visualBtn').innerHTML = icon(v === 'cinema' ? 'cinema' : v === 'live' ? 'live' : 'roda') + '<span class="txt">' + VISUAL_LABEL[v] + '</span>' + icon('chevron');
+  $('visualBtn').title = 'Visual da sala: ' + VISUAL_LABEL[v] + (auto ? ' (escolhido sozinho)' : '') + '. Só muda a sua tela';
   if (!$('visualMenu').hidden) renderVisualMenu();
   $('setVisual').value = chosenVisual();
 }
+// Ao vivo: as reações ficam numa linha logo acima do campo de mensagem (a altura da barra muda com a largura)
+function placeReactBar() {
+  const live = document.body.classList.contains('v-live') && !theater && chatDocked;
+  $('reactBar').style.bottom = live ? Math.round(window.innerHeight - $('chatForm').getBoundingClientRect().top + 8) + 'px' : '';
+}
+window.addEventListener('resize', placeReactBar);
 function setVisual(v) {
   prefs.visual = v; savePrefs(); applyLayout();
   toast('Visual: ' + VISUAL_LABEL[v] + (v === 'auto' ? ' (' + VISUAL_LABEL[currentVisual(focusTileId())] + ' agora)' : ''));
@@ -2324,13 +2421,14 @@ function updateHealth(out) {
 function updateNetBadge() {
   const b = $('netBadge');
   const hs = Object.keys(peerHealth).map((k) => peerHealth[k]);
-  if (!hs.length) { b.style.display = 'none'; return; }
+  if (!hs.length) { b.style.display = 'none'; $('netDot').className = 'cdot'; return; }
   const worst = hs.some((h) => h.level === 'bad') ? 'bad' : hs.some((h) => h.level === 'warn') ? 'warn' : 'good';
   const rtts = hs.map((h) => h.m && h.m.rtt).filter((v) => typeof v === 'number');
-  b.style.display = 'inline-block';
+  b.style.display = 'inline';
   b.className = worst;
-  b.innerHTML = icon('signal');
-  b.append((worst === 'good' ? 'Boa' : worst === 'warn' ? 'Instável' : 'Ruim') + (rtts.length ? ' · ' + Math.round(Math.max(...rtts)) + ' ms' : ''));
+  b.textContent = 'conexão ' + (worst === 'good' ? 'boa' : worst === 'warn' ? 'instável' : 'ruim');
+  b.title = (rtts.length ? 'Atraso: ' + Math.round(Math.max(...rtts)) + ' ms. ' : '') + 'Clique para ver os detalhes da conexão';
+  $('netDot').className = 'cdot ' + worst;
 }
 $('netBadge').onclick = () => toggleDiag();
 
@@ -2466,7 +2564,7 @@ $('setName').onchange = (e) => {
   myName = cleanName(e.target.value) || 'Anônimo';
   prefs.name = myName === 'Anônimo' ? '' : myName; savePrefs();
   const tile = $('tile-local');
-  if (tile) { tile.querySelector('.tag').textContent = myName + ' (você)'; tile.querySelector('.avatar').textContent = initials(myName); }
+  if (tile) setTileName(tile, myName);
   sendMyName();
   if (isHost && peer) broadcastRoster();
 };
@@ -2617,7 +2715,7 @@ function toggleFullscreen() {
 }
 function syncFsBtn() {
   const on = !!fsEl() || !!theater;
-  $('fsBtn').innerHTML = icon(on ? 'minimize' : 'maximize');
+  setCtrlIcon('fsBtn', on ? 'minimize' : 'maximize');
   $('fsBtn').title = on ? 'Sair da tela cheia (F ou Esc)' : 'Tela cheia (F)';
 }
 $('fsBtn').onclick = toggleFullscreen;
