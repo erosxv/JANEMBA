@@ -3028,14 +3028,18 @@ async function fetchVideoInfo(id) {
 // 1º a busca oficial do YouTube (chave travada para o site do CallZinha; ~100 buscas por dia de graça).
 // Se a chave faltar, der erro ou a cota do dia acabar, tenta espelhos públicos do YouTube (Piped/Invidious), que às vezes ficam fora do ar.
 const YT_KEY = '';
+// Se TODOS falharem com frequência, o plano B é um servidor de busca próprio no Cloudflare Workers (grátis, sem cartão).
 const MIRRORS = [
   { kind: 'piped', base: 'https://api.piped.private.coffee' },
+  { kind: 'piped', base: 'https://pipedapi.ducks.party' },
   { kind: 'inv', base: 'https://invidious.f5.si' },
+  { kind: 'inv', base: 'https://invidious.materialio.us' },
   { kind: 'inv', base: 'https://iv.melmac.space' },
 ];
+const MIRROR_KEY = 'callzinha.mirror';
 function decodeEntities(t) { const d = document.createElement('textarea'); d.innerHTML = String(t || ''); return d.value; }
 async function fetchJson(url, ms) {
-  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), ms || 5000);
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), ms || 4000);
   try { const r = await fetch(url, { signal: ctl.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
   finally { clearTimeout(timer); }
 }
@@ -3054,8 +3058,14 @@ async function searchMirror(m, q, n) {
 async function searchMusic(q, n) {
   n = n || 5;
   if (YT_KEY) { try { const r = (await searchOfficial(q, n)).filter((x) => x.id); if (r.length) return r; } catch (e) {} }
-  for (const m of MIRRORS) {
-    try { const r = (await searchMirror(m, q, n)).filter((x) => /^[A-Za-z0-9_-]{11}$/.test(x.id || '')); if (r.length) return r; } catch (e) {}
+  // começa pelo espelho que respondeu da última vez
+  let last = ''; try { last = localStorage.getItem(MIRROR_KEY) || ''; } catch (e) {}
+  const order = MIRRORS.slice().sort((a, b) => (b.base === last) - (a.base === last));
+  for (const m of order) {
+    try {
+      const r = (await searchMirror(m, q, n)).filter((x) => /^[A-Za-z0-9_-]{11}$/.test(x.id || ''));
+      if (r.length) { try { localStorage.setItem(MIRROR_KEY, m.base); } catch (e) {} return r; }
+    } catch (e) {}
   }
   return null;   // null = nenhuma busca respondeu; [] = buscou e não achou
 }
