@@ -1171,6 +1171,18 @@ function initials(name) {
   return (w.length > 1 ? [...w[0]][0] + [...w[1]][0] : [...(w[0] || '?')].slice(0, 2).join('')).toUpperCase();
 }
 
+// Botões da tela compartilhada (tela cheia, chat, girar, sair): servem para a tela dos outros e para a sua
+function addTileActions(tile) {
+  const actions = document.createElement('div');
+  actions.className = 'tile-actions';
+  actions.innerHTML = '<button class="act act-full" title="Tela cheia (F)">' + icon('maximize') + '</button><button class="act act-chat" title="Chat (Enter)">' + icon('chat') + '</button><button class="act act-rotate" title="Girar tela">' + icon('rotate') + '</button><button class="act act-exit" title="Sair da tela cheia (Esc)">' + icon('x') + '</button>';
+  actions.querySelector('.act-full').onclick = () => enterTheater(tile);
+  actions.querySelector('.act-chat').onclick = () => toggleChat();
+  actions.querySelector('.act-rotate').onclick = rotateTheater;
+  actions.querySelector('.act-exit').onclick = exitTheater;
+  tile.appendChild(actions);
+}
+
 function addLocalTile() {
   if (document.getElementById('tile-local')) return;
   const tile = document.createElement('div');
@@ -1192,6 +1204,7 @@ function addLocalTile() {
   myVolControl.innerHTML = '<span>' + icon('mic') + '</span><input type="range" id="myMicVolSlider" min="0" max="200" value="' + micVolumePercent + '">';
   myVolControl.querySelector('input').oninput = (e) => setMicVolume(Number(e.target.value), 'tile');
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(myVolControl);
+  addTileActions(tile);
   const mic = document.createElement('div'); mic.className = 'micst'; tile.appendChild(mic);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
   setTileName(tile, myName);
@@ -1228,14 +1241,7 @@ function addRemoteTile(peerId, name) {
     video.volume = e.target.value / 100;
   };
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(volControl);
-  const actions = document.createElement('div');
-  actions.className = 'tile-actions';
-  actions.innerHTML = '<button class="act act-full" title="Tela cheia (F)">' + icon('maximize') + '</button><button class="act act-chat" title="Chat (Enter)">' + icon('chat') + '</button><button class="act act-rotate" title="Girar tela">' + icon('rotate') + '</button><button class="act act-exit" title="Sair da tela cheia (Esc)">' + icon('x') + '</button>';
-  actions.querySelector('.act-full').onclick = () => enterTheater(tile);
-  actions.querySelector('.act-chat').onclick = () => toggleChat();
-  actions.querySelector('.act-rotate').onclick = rotateTheater;
-  actions.querySelector('.act-exit').onclick = exitTheater;
-  tile.appendChild(actions);
+  addTileActions(tile);
   const sbadge = document.createElement('div'); sbadge.className = 'screen-badge'; sbadge.innerHTML = icon('monitor') + 'compartilhando tela'; tile.appendChild(sbadge);
   const mic = document.createElement('div'); mic.className = 'micst'; tile.appendChild(mic);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
@@ -1834,6 +1840,7 @@ async function startScreenShare() {
   const localVideo = document.querySelector('#tile-local video');
   localVideo.srcObject = new MediaStream([vt]);
   localVideo.classList.add('has-video');
+  $('tile-local').classList.add('has-screen');
   $('screenBtn').classList.add('active');
   const at = screenStream.getAudioTracks()[0];
   if (at) connectScreenAudio(at);
@@ -1855,8 +1862,10 @@ async function stopScreenShare() {
   if (old) old.getTracks().forEach(t => { t.onended = null; t.stop(); });
   disconnectScreenAudio();
   const localVideo = document.querySelector('#tile-local video');
+  if (theater && theater.tile.id === 'tile-local') exitTheater();
   localVideo.srcObject = null;
   localVideo.classList.remove('has-video');
+  $('tile-local').classList.remove('has-screen');
   $('screenBtn').classList.remove('active');
   await setVideoOnCalls(getPlaceholderVideoTrack());
   sendMyState();
@@ -2707,7 +2716,7 @@ function exitTheater() {
 function toggleFullscreen() {
   if (theater) { exitTheater(); return; }
   if (fsEl()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} return; }
-  const t = document.querySelector('#grid .tile.has-screen:not(#tile-local)');
+  const t = document.querySelector('#grid .tile.focus.has-screen') || document.querySelector('#grid .tile.has-screen:not(#tile-local)') || document.querySelector('#tile-local.has-screen');
   if (t) { enterTheater(t); return; }
   const root = document.documentElement;
   const fn = root.requestFullscreen || root.webkitRequestFullscreen;
