@@ -568,6 +568,60 @@
   body.theater-open.idle, body.theater-open.idle * { cursor: none; }
   .tile:not(.theater) .act-chat { display: none; }
   @media (max-width: 420px) { #controls { gap: 6px; } .ctrl-btn { width: 42px; height: 42px; border-radius: 13px; } .ctrl-btn .ic { width: 20px; height: 20px; } .ctrl-btn.leave { width: 50px; } #reactBar { left: 6px; } #reactBar button { width: 38px; height: 38px; font-size: 20px; } }
+  /* ================= estilo Cápsula (inspirado no Discord, com cara própria) ================= */
+  /* fundo grafite, cabeçalho só com uma etiqueta no meio */
+  #callScreen { background: #101216; }
+  #topbar { position: relative; justify-content: flex-end; min-height: 58px; background: transparent; border-bottom: none; }
+  #topbar .roomInfo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); gap: 8px; padding: 5px 14px; border-radius: 999px; background: #181b21; white-space: nowrap; }
+  #topbar .roomChip { padding: 0; border: none; background: none; gap: 6px; }
+  #topbar .roomChip b { font-size: 13px; }
+  #topbar .roomMeta { gap: 6px; }
+  #visualBtn, #copyLinkBtn { height: 34px; padding: 0 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: #c8ccd4; font-weight: 500; }
+  #visualBtn:hover, #copyLinkBtn:hover { background: #181b21; opacity: 1; }
+  #shortcutHint { display: none; }
+  /* cartões tingidos com a cor de cada pessoa; quem está mudo fica apagado em vez de ganhar selo vermelho */
+  #grid .tile:not(.focus) { border: none; border-radius: 20px; background: #171a21; background: color-mix(in srgb, var(--av-bg, #2a3558) 55%, #101216); transition: opacity .2s ease, box-shadow .15s ease; }
+  #grid .tile.is-muted:not(.focus):not(.speaking) { opacity: .6; }
+  #grid .tile.focus { border-radius: 20px; border-color: #1c2028; }
+  .tile.speaking { border-color: transparent !important; box-shadow: inset 0 0 0 1.5px #3ddc97, 0 0 20px rgba(61,220,151,.18) !important; }
+  #grid .tile.focus.speaking { box-shadow: 0 0 0 1.5px #3ddc97, 0 0 20px rgba(61,220,151,.18) !important; }
+  /* nome sem pílula, só o texto no canto; o mic riscado aparece ao lado do nome quando mudo */
+  #grid .tile:not(.focus) .tag { left: 12px; bottom: 10px; padding: 0; background: none; font-size: 12px; }
+  #grid .tile:not(.focus) .tag .nm { font-weight: 500; color: #dfe2e8; }
+  #grid .tile:not(.focus) .tag .st { color: #8b93a3; }
+  #grid .tile:not(.focus) .micst { display: none; }
+  #grid .tile.is-muted:not(.focus) .micst { display: flex; top: auto; right: auto; left: 8px; bottom: 8px; width: 18px; height: 18px; background: none; color: #9aa1ad; }
+  #grid .tile.is-muted:not(.focus) .tag { left: 28px; }
+  /* barra: uma cápsula só, com ícones redondos; legenda vira dica (continua para leitores de tela) */
+  #controls { gap: 2px; padding: 5px; border: none; border-radius: 999px; background: #181b21; }
+  #controls .cgroup { gap: 2px; }
+  #controls .cdiv { display: none; }
+  #controls .cdiv:last-of-type { display: block; height: 20px; margin: 0 6px; background: #2a2f38; }
+  #controls .ctrl-btn, #controls .ctrl-btn.active, #controls .ctrl-btn.off, #controls .ctrl-btn.leave { min-width: 0; padding: 0; gap: 0; }
+  #controls .cb-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #controls .ctrl-btn .cb-ic { width: 40px; height: 40px; border: none; border-radius: 50%; background: transparent; color: #c8ccd4; }
+  #controls .ctrl-btn:hover .cb-ic { background: #232833; border: none; }
+  #controls .ctrl-btn.active .cb-ic { background: rgba(124,155,255,.18); color: #9db4ff; }
+  #controls #micBtn.active .cb-ic { background: transparent; color: #c8ccd4; }
+  #controls #micBtn.active:hover .cb-ic { background: #232833; }
+  #controls .ctrl-btn.off .cb-ic { background: rgba(229,72,77,.16); color: #ff6b6f; }
+  #controls .ctrl-btn.on .cb-ic { color: #9db4ff; }
+  #controls .ctrl-btn.leave .cb-ic { width: 52px; border-radius: 999px; background: #e5484d; color: #fff; }
+  #controls .ctrl-btn.leave:hover .cb-ic { background: #f05a5f; }
+  #controls .ctrl-btn .ic { width: 19px; height: 19px; }
+  #controls #chatBadge { top: 2px; right: 1px; border-color: #181b21; }
+  body.v-cinema #controls { background: rgba(24,27,33,.95); }
+  @media (max-width: 700px) {
+    #topbar { justify-content: space-between; }
+    #topbar .roomInfo { position: static; transform: none; white-space: normal; border-radius: 14px; }
+  }
+  @media (max-width: 420px) {
+    #controls { padding: 4px; }
+    #controls .ctrl-btn .cb-ic { width: 36px; height: 36px; }
+    #controls .ctrl-btn.leave .cb-ic { width: 46px; }
+    #controls .cdiv:last-of-type { margin: 0 3px; }
+    #topbar .roomMeta #netBadge { display: none !important; }
+  }
 </style>
 </head>
 <body>
