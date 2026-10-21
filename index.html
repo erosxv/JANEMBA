@@ -399,7 +399,7 @@
   #reactLayer .fly small { font-size: 11px; color: #fff; background: rgba(0,0,0,.45); padding: 1px 6px; border-radius: 6px; margin-top: 2px; }
   @keyframes reactFly { 0% { transform: translate(0, 0) scale(.6); opacity: 0; } 12% { transform: translate(0, -30px) scale(1.1); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(var(--dx, 0), -62vh) scale(1); opacity: 0; } }
   /* tela cheia limpa: sem bordas nem etiquetas; os botões somem junto com o cursor */
-  .tile.theater .volbar, .tile.theater .screen-badge, .tile.theater .state-badges { display: none; }
+  .tile.theater .volbar, .tile.theater .screen-badge, .tile.theater .state-badges { display: none !important; }
   .tile.theater .tag, .tile.theater .vol-control, .tile.theater .tile-actions { transition: opacity .4s; }
   body.idle .tile.theater .tag, body.idle .tile.theater .vol-control, body.idle .tile.theater .tile-actions { opacity: 0; pointer-events: none; }
   body.theater-open.idle, body.theater-open.idle * { cursor: none; }
@@ -2376,11 +2376,25 @@ function layoutTheater() {
   else                  { t.style.width = W + 'px'; t.style.height = H + 'px'; t.style.transform = 'none'; }
 }
 
+// Na tela cheia, o chat, as reações e os avisos vão para dentro do tile: assim giram junto com o vídeo
+// no celular. O painel de música fica de fora (mover o player do YouTube faria ele recarregar).
+const THEATER_OVERLAYS = ['reactBar', 'reactLayer', 'notices', 'toast', 'chatPanel'];
+let overlayHome = [];
+function moveOverlays(tile) {
+  if (tile) {
+    overlayHome = THEATER_OVERLAYS.map((id) => { const el = $(id); const home = [el, el.parentNode, el.nextSibling]; tile.appendChild(el); return home; });
+  } else {
+    overlayHome.reverse().forEach(([el, parent, next]) => parent.insertBefore(el, next));
+    overlayHome = [];
+  }
+}
+
 async function enterTheater(tile) {
   if (theater) exitTheater();
   const video = tile.querySelector('video');
   theater = { tile, rot: 0, fs: false };
   tile.classList.add('theater');
+  moveOverlays(tile);
   document.body.classList.add('theater-open');
   layoutTheater();
   let locked = false;
@@ -2413,7 +2427,7 @@ async function rotateTheater() {
     } catch (e) {}
   }
   if (theater.fs) leaveFs(); // rotação por CSS precisa do modo "janela cheia"
-  theater.rot = theater.rot === 0 ? 90 : theater.rot === 90 ? 270 : 0;
+  theater.rot = theater.rot === 0 ? 90 : 0;   // um toque deita, outro toque volta a ficar em pé
   layoutTheater();
 }
 
@@ -2421,6 +2435,7 @@ function exitTheater() {
   if (!theater) return;
   const t = theater.tile;
   theater = null;
+  moveOverlays(null);
   t.classList.remove('theater');
   t.style.width = ''; t.style.height = ''; t.style.transform = ''; t.style.transformOrigin = '';
   document.body.classList.remove('theater-open');
@@ -2858,17 +2873,26 @@ $('chatForm').onsubmit = (e) => {
 };
 
 // Mouse parado por 2,5 s: some com as reações, os botões da tela cheia e o cursor
-let idleTimer = null;
+let idleTimer = null, wasIdle = false;
+// No celular o navegador deixa o último botão tocado "com o mouse em cima" para sempre: só conta hover de mouse de verdade
+const realHover = window.matchMedia ? window.matchMedia('(hover: hover)') : { matches: true };
 function wake() {
+  wasIdle = document.body.classList.contains('idle');
   document.body.classList.remove('idle');
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
-    if (document.activeElement === $('chatInput') || document.querySelector('#reactBar:hover, #chatPanel:hover, #musicPanel:hover, .tile-actions:hover, .vol-control:hover')) { wake(); return; }
+    if (document.activeElement === $('chatInput') || (realHover.matches && document.querySelector('#reactBar:hover, #chatPanel:hover, #musicPanel:hover, .tile-actions:hover, .vol-control:hover'))) { wake(); return; }
     document.body.classList.add('idle');
   }, 2500);
 }
 ['mousemove', 'pointerdown', 'keydown', 'touchstart'].forEach((ev) => document.addEventListener(ev, wake, { passive: true }));
 wake();
+// Tela cheia no celular: tocar no vídeo mostra os controles; tocar de novo esconde na hora
+document.addEventListener('pointerup', (e) => {
+  if (!theater || e.pointerType === 'mouse' || !theater.tile.contains(e.target)) return;
+  if (e.target.closest('button, input, label, .vol-control, #chatPanel, #reactBar')) return;
+  if (!wasIdle) { clearTimeout(idleTimer); document.body.classList.add('idle'); }
+});
 
 window.onbeforeunload = () => { if (peer) peer.destroy(); };
 window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // celular: libera o ID da sala mais rápido
