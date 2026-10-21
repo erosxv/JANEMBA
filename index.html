@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CallZinha - Chamada em grupo</title>
 <meta name="theme-color" content="#14161c">
 <link rel="manifest" href="manifest.webmanifest">
@@ -427,6 +427,41 @@
   body.v-cinema #nowPlaying { bottom: 18px; }
   body.v-cinema.idle #nowPlaying { opacity: 0; pointer-events: none; }
   body.v-live #nowPlaying, body.theater-open #nowPlaying { display: none; }
+  /* iPhone pela Tela de Início: a página vai até as bordas (viewport-fit=cover);
+     só os controles se afastam do relógio e da barrinha de baixo */
+  @supports (padding: max(0px)) {
+    #topbar { padding-top: max(14px, env(safe-area-inset-top)); padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
+    body.v-live #topbar { padding-top: max(8px, env(safe-area-inset-top)); padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+    #controls { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    body.v-live #controls { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    body.v-cinema #controls { padding-bottom: 8px; bottom: calc(16px + env(safe-area-inset-bottom)); }
+    #joinScreen { padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+    #settingsPanel header { padding-top: max(14px, env(safe-area-inset-top)); }
+    .tile.theater .tile-actions { bottom: max(8px, env(safe-area-inset-bottom)); right: max(8px, env(safe-area-inset-right)); }
+  }
+  /* menu de visual (lista suspensa no topo) */
+  .vwrap { position: relative; }
+  #visualBtn .ic:last-child { width: 14px; height: 14px; color: #9aa0a6; }
+  .vmenu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 1800; width: 292px; max-width: calc(100vw - 24px); padding: 6px; border-radius: 12px; border: 1px solid #2a2e37; background: #1a1d24; box-shadow: 0 12px 32px rgba(0,0,0,.45); }
+  .vmenu[hidden] { display: none; }
+  @media (max-width: 520px) { .vmenu { position: fixed; left: 12px; right: 12px; width: auto; max-width: none; } }
+  .vitem { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border-radius: 9px; background: none; color: #eaeaea; text-align: left; font-weight: 400; }
+  .vitem:hover, .vitem:focus-visible { background: #22252d; opacity: 1; outline: none; }
+  .vitem > .ic { width: 20px; height: 20px; color: #9aa0a6; }
+  .vitem .vtx { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .vitem b { font-size: 14px; font-weight: 600; }
+  .vitem small { font-size: 12px; color: #7b818a; }
+  .vitem .vcheck { visibility: hidden; color: #8fb0ff; width: 18px; height: 18px; }
+  .vitem.sel { background: rgba(91,140,255,.14); }
+  .vitem.sel > .ic:first-child, .vitem.sel b { color: #8fb0ff; }
+  .vitem.sel .vcheck { visibility: visible; }
+  .vsep { height: 1px; background: #2a2e37; margin: 6px 4px; }
+  .vauto { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 10px 8px; font-size: 13px; color: #c9ccd1; cursor: pointer; }
+  .vauto small { display: block; font-size: 11px; color: #7b818a; margin-top: 2px; }
+  .vauto input { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 36px; height: 20px; border-radius: 10px; background: #2a2e37; cursor: pointer; transition: background .15s ease; }
+  .vauto input::before { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #eaeaea; transition: transform .15s ease; }
+  .vauto input:checked { background: #5b8cff; }
+  .vauto input:checked::before { transform: translateX(16px); }
   /* ================= chat, reações e tela cheia ================= */
   .ctrl-btn { position: relative; }
   #chatBadge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #d64545; color: #fff; font-size: 11px; line-height: 18px; display: none; }
@@ -496,6 +531,9 @@
   <symbol id="i-cinema" viewBox="0 0 24 24"><rect width="20" height="15" x="2" y="7" rx="2"/><path d="m17 2-5 5-5-5"/></symbol>
   <symbol id="i-roda" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
   <symbol id="i-live" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></symbol>
+  <symbol id="i-minimize" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
 </svg>
 
@@ -520,7 +558,7 @@
     <div class="roomInfo">Sala: <b id="roomLabel"></b> &nbsp;•&nbsp; <span id="peerCount">1</span> na chamada</div>
     <div class="topActions">
       <button id="netBadge" title="Qualidade da conexão — clique para ver os detalhes"></button>
-      <button id="visualBtn" class="top-btn" title="Trocar o visual da sala (só muda a sua tela)"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="txt">Automático</span></button>
+      <div class="vwrap"><button id="visualBtn" class="top-btn" title="Visual da sala (só muda a sua tela)" aria-haspopup="menu" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="txt">Automático</span></button><div id="visualMenu" class="vmenu" role="menu" aria-label="Visual da sala" hidden><button class="vitem" data-v="cinema" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-cinema"/></svg><span class="vtx"><b>Cinema</b><small>A tela compartilhada em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="roda" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="vtx"><b>Roda</b><small>As pessoas em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="live" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-live"/></svg><span class="vtx"><b>Ao vivo</b><small>Vídeo em cima, chat embaixo</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><div class="vsep"></div><label class="vauto"><span>Escolher sozinho<small>Celular: Ao vivo · computador: Cinema ou Roda</small></span><input type="checkbox" id="visualAuto" role="switch"></label></div></div>
       <button id="copyLinkBtn" title="Copiar link de convite"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="txt">Copiar link de convite</span></button>
     </div>
   </div>
@@ -532,6 +570,7 @@
     <button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></button>
     <button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span id="chatBadge"></span></button>
     <button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg></button>
+    <button id="fsBtn" class="ctrl-btn" title="Tela cheia (F)"><svg class="ic" aria-hidden="true"><use href="#i-maximize"/></svg></button>
     <button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button>
     <button id="leaveBtn" class="ctrl-btn leave" title="Sair"><svg class="ic" aria-hidden="true"><use href="#i-phone-off"/></svg></button>
   </div>
@@ -1800,8 +1839,8 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
-  if (e.key === 'Enter') { e.preventDefault(); toggleChat(true); return; }
-  if (e.code === 'KeyF') { toggleScreenFullscreen(); return; }
+  if (e.key === 'Enter') { if (tag === 'button') return; e.preventDefault(); toggleChat(true); return; }
+  if (e.code === 'KeyF') { toggleFullscreen(); return; }
   const n = Number(e.key);
   if (n >= 1 && n <= REACTIONS.length) sendReaction(n - 1);
 });
@@ -2157,16 +2196,37 @@ function applyLayout() {
   grid.querySelectorAll('.tile').forEach((t) => { t.classList.toggle('focus', !!fid && t.id === fid); t.classList.toggle('pinned', t.id === pinnedId); });
   placeChat(v === 'live');
   const auto = chosenVisual() === 'auto';
-  $('visualBtn').innerHTML = icon(v === 'cinema' ? 'cinema' : v === 'live' ? 'live' : 'roda') + '<span class="txt">' + (auto ? 'Automático · ' : '') + VISUAL_LABEL[v] + '</span>';
+  $('visualBtn').innerHTML = icon(v === 'cinema' ? 'cinema' : v === 'live' ? 'live' : 'roda') + '<span class="txt">' + (auto ? 'Automático · ' : '') + VISUAL_LABEL[v] + '</span>' + icon('chevron');
+  if (!$('visualMenu').hidden) renderVisualMenu();
   $('setVisual').value = chosenVisual();
 }
 function setVisual(v) {
   prefs.visual = v; savePrefs(); applyLayout();
   toast('Visual: ' + VISUAL_LABEL[v] + (v === 'auto' ? ' (' + VISUAL_LABEL[currentVisual(focusTileId())] + ' agora)' : ''));
 }
-function cycleVisual() { setVisual(VISUALS[(VISUALS.indexOf(chosenVisual()) + 1) % VISUALS.length]); }
 function togglePin(tid) { pinnedId = (pinnedId === tid) ? null : tid; applyLayout(); }
-$('visualBtn').onclick = cycleVisual;
+// Menu do visual: lista com Cinema, Roda e Ao vivo + chave "Escolher sozinho"
+function renderVisualMenu() {
+  const v = currentVisual(focusTileId());
+  document.querySelectorAll('#visualMenu .vitem').forEach((b) => { const on = b.dataset.v === v; b.classList.toggle('sel', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); });
+  $('visualAuto').checked = chosenVisual() === 'auto';
+}
+function toggleVisualMenu(force) {
+  const m = $('visualMenu');
+  const open = typeof force === 'boolean' ? force : m.hidden;
+  m.hidden = !open;
+  $('visualBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) {
+    m.style.top = window.innerWidth <= 520 ? Math.round($('visualBtn').getBoundingClientRect().bottom + 6) + 'px' : '';
+    renderVisualMenu();
+  }
+}
+$('visualBtn').onclick = () => toggleVisualMenu();
+document.querySelectorAll('#visualMenu .vitem').forEach((b) => { b.onclick = () => { setVisual(b.dataset.v); toggleVisualMenu(false); }; });
+// desligar a chave mantém o visual que está na tela agora
+$('visualAuto').onchange = (e) => { setVisual(e.target.checked ? 'auto' : currentVisual(focusTileId())); renderVisualMenu(); };
+document.addEventListener('pointerdown', (e) => { if (!$('visualMenu').hidden && !e.target.closest('.vwrap')) toggleVisualMenu(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('visualMenu').hidden) { toggleVisualMenu(false); $('visualBtn').focus(); } });
 $('setVisual').onchange = (e) => setVisual(e.target.value);
 if (phoneQuery.addEventListener) phoneQuery.addEventListener('change', applyLayout);
 
@@ -2445,7 +2505,6 @@ $('setShortcutBtn').onclick = () => {
   };
   document.addEventListener('keydown', handler, true);
 };
-$('visualBtn').title = 'Trocar o visual da sala: Automático, Cinema, Roda ou Ao vivo (só muda a sua tela)';
 
 // Estado inicial da tela de entrada: nome salvo e pré-carregamento do filtro de IA (não atrapalha a abertura da página)
 if (prefs.name) $('nameInput').value = prefs.name;
@@ -2545,14 +2604,28 @@ function exitTheater() {
 }
 
 // Tecla F: tela cheia na tela compartilhada (ou sai dela)
-function toggleScreenFullscreen() {
+// Botão de tela cheia (e tecla F): com alguém compartilhando, abre a tela dele em tela cheia;
+// sem ninguém compartilhando, a sala inteira fica em tela cheia. Apertar de novo sai.
+function toggleFullscreen() {
   if (theater) { exitTheater(); return; }
+  if (fsEl()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} return; }
   const t = document.querySelector('#grid .tile.has-screen:not(#tile-local)');
-  if (t) enterTheater(t); else toast('Ninguém está compartilhando a tela agora.');
+  if (t) { enterTheater(t); return; }
+  const root = document.documentElement;
+  const fn = root.requestFullscreen || root.webkitRequestFullscreen;
+  try { const pr = fn.call(root); if (pr && pr.catch) pr.catch(() => {}); } catch (e) {}
 }
+function syncFsBtn() {
+  const on = !!fsEl() || !!theater;
+  $('fsBtn').innerHTML = icon(on ? 'minimize' : 'maximize');
+  $('fsBtn').title = on ? 'Sair da tela cheia (F ou Esc)' : 'Tela cheia (F)';
+}
+$('fsBtn').onclick = toggleFullscreen;
+// iPhone não deixa sites entrarem em tela cheia: lá o botão some (o vídeo continua tendo o próprio botão)
+if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) $('fsBtn').style.display = 'none';
 
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev =>
-  document.addEventListener(ev, () => { if (theater && theater.fs && !fsEl()) exitTheater(); }));
+  document.addEventListener(ev, () => { if (theater && theater.fs && !fsEl()) exitTheater(); syncFsBtn(); }));
 window.addEventListener('resize', layoutTheater);
 window.addEventListener('orientationchange', layoutTheater);
 
