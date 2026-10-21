@@ -343,6 +343,31 @@
   #musicQueue .qt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c9ccd1; }
   #musicQueue .qb { color: #7b818a; font-size: 11px; white-space: nowrap; }
   #musicQueue button { background: none; color: #9aa0a6; padding: 2px 5px; font-size: 12px; }
+  /* ================= ícones e botões ================= */
+  .ic { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.22em; }
+  .ctrl-btn { width: 52px; height: 52px; border-radius: 16px; background: #1d2027; border: 1px solid #2a2e37; color: #e6e8eb; transition: background .15s ease, border-color .15s ease, color .15s ease, transform .08s ease; }
+  .ctrl-btn:hover { opacity: 1; background: #262a33; border-color: #353a45; }
+  .ctrl-btn:active { opacity: 1; transform: scale(.95); }
+  .ctrl-btn .ic { width: 22px; height: 22px; }
+  .ctrl-btn.active { background: #5b8cff; border-color: #5b8cff; color: #fff; }
+  .ctrl-btn.off, .ctrl-btn.leave { background: #e5484d; border-color: #e5484d; color: #fff; }
+  .ctrl-btn.leave { width: 64px; }
+  .ctrl-btn.leave:hover, .ctrl-btn.off:hover { background: #f05a5f; border-color: #f05a5f; }
+  #micBtn.active { background: #1d2027; border-color: #2a2e37; color: #e6e8eb; }   /* microfone ligado é o normal: só o mudo chama atenção */
+  .ctrl-btn.on { color: #8fb0ff; border-color: #3d4a6b; }
+  .top-btn, #copyLinkBtn, #netBadge { display: inline-flex; align-items: center; gap: 6px; }
+  .tile .vol-control .ic { width: 14px; height: 14px; }
+  .tile .screen-badge .ic, .tile .sbadge .ic { width: 12px; height: 12px; margin-right: 3px; }
+  .tile-actions .act { display: inline-flex; align-items: center; justify-content: center; }
+  .tile-actions .act .ic { width: 20px; height: 20px; }
+  #musicPanel .mctrl button, #musicPanel .mhead button, #chatPanel .chead button, #diagPanel .dhead button, #musicQueue button { display: inline-flex; align-items: center; justify-content: center; }
+  #musicPanel .mhead span, #chatPanel .chead span, #diagPanel .dhead span { display: inline-flex; align-items: center; gap: 8px; }
+  #musicQueue button .ic { width: 14px; height: 14px; }
+  #musicUnlock { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  #joinScreen h1 { display: flex; align-items: center; gap: 10px; }
+  #joinScreen h1 .ic { width: 30px; height: 30px; color: #5b8cff; }
+  #genRoomBtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  #settingsPanel header h2 { display: inline-flex; align-items: center; gap: 8px; }
   /* ================= chat, reações e tela cheia ================= */
   .ctrl-btn { position: relative; }
   #chatBadge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #d64545; color: #fff; font-size: 11px; line-height: 18px; display: none; }
@@ -378,20 +403,48 @@
   body.idle .tile.theater .tag, body.idle .tile.theater .vol-control, body.idle .tile.theater .tile-actions { opacity: 0; pointer-events: none; }
   body.theater-open.idle, body.theater-open.idle * { cursor: none; }
   .tile:not(.theater) .act-chat { display: none; }
-  @media (max-width: 420px) { #controls { gap: 6px; } .ctrl-btn { width: 42px; height: 42px; font-size: 18px; } #reactBar { left: 6px; } #reactBar button { width: 38px; height: 38px; font-size: 20px; } }
+  @media (max-width: 420px) { #controls { gap: 6px; } .ctrl-btn { width: 42px; height: 42px; border-radius: 13px; } .ctrl-btn .ic { width: 20px; height: 20px; } .ctrl-btn.leave { width: 50px; } #reactBar { left: 6px; } #reactBar button { width: 38px; height: 38px; font-size: 20px; } }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+  <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="m2 2 20 20M18.89 13.23A7.12 7.12 0 0 0 19 12v-2M5 10v2a7 7 0 0 0 12 5M15 9.34V5a3 3 0 0 0-5.68-1.33M9 9v3a3 3 0 0 0 5.12 2.12M12 19v3"/></symbol>
+  <symbol id="i-screen" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4M9 10l3-3 3 3M12 7v6"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-phone-off" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91M22 2 2 22"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect fill="currentColor" x="6" y="4" width="4" height="16" rx="1"/><rect fill="currentColor" x="14" y="4" width="4" height="16" rx="1"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path fill="currentColor" d="M19 5.5v13a1 1 0 0 1-1.55.83l-9.5-6.5a1 1 0 0 1 0-1.66l9.5-6.5A1 1 0 0 1 19 5.5Z"/><path d="M5 5v14"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path fill="currentColor" d="M5 5.5v13a1 1 0 0 0 1.55.83l9.5-6.5a1 1 0 0 0 0-1.66l-9.5-6.5A1 1 0 0 0 5 5.5Z"/><path d="M19 5v14"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+  <symbol id="i-focus" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="3" rx="1"/><rect width="5" height="4" x="3" y="17" rx="1"/><rect width="5" height="4" x="9.5" y="17" rx="1"/><rect width="5" height="4" x="16" y="17" rx="1"/></symbol>
+  <symbol id="i-side" viewBox="0 0 24 24"><rect width="12" height="18" x="3" y="3" rx="1"/><rect width="4" height="5" x="17" y="3" rx="1"/><rect width="4" height="5" x="17" y="10" rx="1"/></symbol>
+  <symbol id="i-signal" viewBox="0 0 24 24"><path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/></symbol>
+  <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="m18 14 4 4-4 4M18 2l4 4-4 4M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22M2 6h1.9c1.5 0 2.9.9 3.6 2.2M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3ZM12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
+</svg>
 
 <div id="joinScreen">
-  <h1>📞 CallZinha</h1>
+  <h1><svg class="ic" aria-hidden="true"><use href="#i-logo"/></svg>CallZinha</h1>
   <p class="sub">Chamada em grupo por áudio, com tela compartilhada</p>
   <div class="card">
     <label for="nameInput">Seu nome</label>
     <input id="nameInput" placeholder="Ex: João" maxlength="20">
     <label for="roomInput">Código da sala</label>
     <input id="roomInput" placeholder="Ex: turma-do-cafe" maxlength="40">
-    <button id="genRoomBtn" class="btn-ghost">🎲 Gerar código novo</button>
+    <button id="genRoomBtn" class="btn-ghost"><svg class="ic" aria-hidden="true"><use href="#i-shuffle"/></svg>Gerar código novo</button>
     <div class="row-btns">
       <button id="joinBtn" class="btn-primary">Entrar na chamada</button>
     </div>
@@ -404,20 +457,20 @@
     <div class="roomInfo">Sala: <b id="roomLabel"></b> &nbsp;•&nbsp; <span id="peerCount">1</span> na chamada</div>
     <div class="topActions">
       <button id="netBadge" title="Qualidade da conexão — clique para ver os detalhes"></button>
-      <button id="layoutBtn" class="top-btn" title="Alternar layout: grade / foco / lateral">▦ Grade</button>
-      <button id="copyLinkBtn">🔗 Copiar link de convite</button>
+      <button id="layoutBtn" class="top-btn" title="Alternar layout: grade / foco / lateral"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg>Grade</button>
+      <button id="copyLinkBtn"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Copiar link de convite</button>
     </div>
   </div>
   <div id="micAlert"><span id="micAlertText"></span><button id="micAlertBtn"></button></div>
   <div id="grid"></div>
   <div id="controls">
-    <button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)">🎤</button>
-    <button id="screenBtn" class="ctrl-btn" title="Compartilhar tela">🖥️</button>
-    <button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)">🎵</button>
-    <button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)">💬<span id="chatBadge"></span></button>
-    <button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação">😀</button>
-    <button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos">⚙️</button>
-    <button id="leaveBtn" class="ctrl-btn leave" title="Sair">📵</button>
+    <button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
+    <button id="screenBtn" class="ctrl-btn" title="Compartilhar tela"><svg class="ic" aria-hidden="true"><use href="#i-screen"/></svg></button>
+    <button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></button>
+    <button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span id="chatBadge"></span></button>
+    <button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg></button>
+    <button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+    <button id="leaveBtn" class="ctrl-btn leave" title="Sair"><svg class="ic" aria-hidden="true"><use href="#i-phone-off"/></svg></button>
   </div>
   <div id="reactBar" aria-label="Reações"></div>
   <div id="reactLayer"></div>
@@ -428,25 +481,25 @@
 <div id="toast"></div>
 
 <div id="diagPanel">
-  <div class="dhead"><span>📶 Diagnóstico da conexão (dados reais do WebRTC)</span><button id="diagClose" title="Fechar">✕</button></div>
+  <div class="dhead"><span><svg class="ic" aria-hidden="true"><use href="#i-signal"/></svg>Diagnóstico da conexão (dados reais do WebRTC)</span><button id="diagClose" title="Fechar"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
   <div id="diagBody"></div>
   <div class="dfoot">Atualiza a cada 2 s. "—" = o navegador não informou esse dado.</div>
 </div>
 
 <div id="musicPanel" class="closed">
-  <div class="mhead"><span>🎵 Música da sala</span><button id="musicClose" title="Fechar (a música continua)">✕</button></div>
+  <div class="mhead"><span><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg>Música da sala</span><button id="musicClose" title="Fechar (a música continua)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
   <div id="musicVideo"><div id="musicEmpty">Cole um link do YouTube abaixo para tocar para todo mundo da sala.</div><div id="musicPlayer"></div></div>
   <div id="musicBody">
     <div><div id="musicTitle">Nada tocando</div><div id="musicBy"></div></div>
     <input type="range" id="musicSeek" min="0" max="0" value="0" step="1" aria-label="Posição da música">
     <div id="musicTime">0:00 / 0:00</div>
     <div class="mctrl">
-      <button id="musicPrev" title="Anterior">⏮</button>
-      <button id="musicPlay" title="Tocar/pausar para todos">▶</button>
-      <button id="musicNext" title="Próxima">⏭</button>
-      <label title="Volume da música só para você">🔊<input type="range" id="musicVol" min="0" max="100"></label>
+      <button id="musicPrev" title="Anterior"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg></button>
+      <button id="musicPlay" title="Tocar/pausar para todos"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></button>
+      <button id="musicNext" title="Próxima"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
+      <label title="Volume da música só para você"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg><input type="range" id="musicVol" min="0" max="100"></label>
     </div>
-    <button id="musicUnlock" style="display:none">▶ Clique para ouvir a música aqui</button>
+    <button id="musicUnlock" style="display:none"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Clique para ouvir a música aqui</button>
     <form id="musicAddForm"><input id="musicUrl" type="text" placeholder="Link do YouTube ou YouTube Music" autocomplete="off"><button type="submit">Adicionar</button></form>
     <ol id="musicQueue"></ol>
     <div class="hint">Cada pessoa ouve pelo próprio navegador; a sala só sincroniza a fila e o tempo. Use fones para a música não vazar pelo seu microfone. O volume acima vale só para você.</div>
@@ -454,14 +507,14 @@
 </div>
 
 <div id="chatPanel" class="closed">
-  <div class="chead"><span>💬 Chat da sala</span><button id="chatClose" title="Fechar (Esc)">✕</button></div>
+  <div class="chead"><span><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg>Chat da sala</span><button id="chatClose" title="Fechar (Esc)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
   <div id="chatLog" aria-live="polite"></div>
   <form id="chatForm"><input id="chatInput" type="text" maxlength="500" placeholder="Escreva uma mensagem" autocomplete="off"><button type="submit">Enviar</button></form>
 </div>
 
 <div id="settingsOverlay"></div>
 <aside id="settingsPanel" aria-label="Configurações">
-  <header><h2>⚙️ Configurações</h2><button id="settingsClose" title="Fechar">✕</button></header>
+  <header><h2><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg>Configurações</h2><button id="settingsClose" title="Fechar"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></header>
   <div id="settingsBody">
 
     <section class="sset">
@@ -886,11 +939,12 @@ function enterCallUI() {
 
 function showMediaBanner() {
   if (document.getElementById('mediaBanner')) return;
+  $('micBtn').innerHTML = icon('mic-off'); $('micBtn').classList.add('off'); $('micBtn').classList.remove('active');
   const banner = document.createElement('div');
   banner.id = 'mediaBanner';
   banner.innerHTML =
-    '<span>⚠️ Você entrou sem microfone. Os outros conseguem te ouvir assim que você ativar.</span>' +
-    '<button id="enableMediaBtn" class="btn-primary" style="padding:8px 14px;white-space:nowrap;">🎤 Ativar microfone</button>';
+    '<span>' + icon('alert') + ' Você entrou sem microfone. Os outros conseguem te ouvir assim que você ativar.</span>' +
+    '<button id="enableMediaBtn" class="btn-primary" style="padding:8px 14px;white-space:nowrap;">' + icon('mic') + ' Ativar microfone</button>';
   $('callScreen').insertBefore(banner, $('grid'));
   document.getElementById('enableMediaBtn').onclick = enableMic;
 }
@@ -902,7 +956,7 @@ async function enableMic() {
     localStream = await acquireMicStream();
     hasMic = true; micOn = true;
     await attachMicTrack(localStream.getAudioTracks()[0]);
-    $('micBtn').textContent = '🎤';
+    $('micBtn').innerHTML = icon('mic');
     $('micBtn').classList.add('active'); $('micBtn').classList.remove('off');
     applyMicGain();
     // Não precisa refazer as chamadas: a faixa de áudio enviada já existe desde a entrada e agora passa a ter o mic.
@@ -912,7 +966,7 @@ async function enableMic() {
     if (banner) banner.remove();
     toast("Microfone ativado!");
   } catch (e) {
-    if (btn) { btn.textContent = "🎤 Ativar microfone"; btn.disabled = false; }
+    if (btn) { btn.innerHTML = icon('mic') + ' Ativar microfone'; btn.disabled = false; }
     const reasons = {
       NotAllowedError: "Permissão negada. Clique no cadeado 🔒 ao lado do endereço e permita o microfone.",
       NotFoundError: "Nenhum microfone foi encontrado pelo navegador.",
@@ -955,7 +1009,7 @@ function addLocalTile() {
   const myVolControl = document.createElement('div');
   myVolControl.className = 'vol-control';
   myVolControl.title = "Volume da sua própria voz enviada pra chamada";
-  myVolControl.innerHTML = '<span>🎙️</span><input type="range" id="myMicVolSlider" min="0" max="200" value="' + micVolumePercent + '">';
+  myVolControl.innerHTML = '<span>' + icon('mic') + '</span><input type="range" id="myMicVolSlider" min="0" max="200" value="' + micVolumePercent + '">';
   myVolControl.querySelector('input').oninput = (e) => setMicVolume(Number(e.target.value), 'tile');
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(myVolControl);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
@@ -988,20 +1042,20 @@ function addRemoteTile(peerId, name) {
   volbar.innerHTML = '<div class="volfill"></div>';
   const volControl = document.createElement('div');
   volControl.className = 'vol-control';
-  volControl.innerHTML = '<span>🔊</span><input type="range" min="0" max="100" value="100">';
+  volControl.innerHTML = '<span>' + icon('volume') + '</span><input type="range" min="0" max="100" value="100">';
   volControl.querySelector('input').oninput = (e) => {
     video.volume = e.target.value / 100;
   };
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(volControl);
   const actions = document.createElement('div');
   actions.className = 'tile-actions';
-  actions.innerHTML = '<button class="act act-full" title="Tela cheia">⛶</button><button class="act act-chat" title="Chat (Enter)">💬</button><button class="act act-rotate" title="Girar tela">🔄</button><button class="act act-exit" title="Sair da tela cheia">✕</button>';
+  actions.innerHTML = '<button class="act act-full" title="Tela cheia (F)">' + icon('maximize') + '</button><button class="act act-chat" title="Chat (Enter)">' + icon('chat') + '</button><button class="act act-rotate" title="Girar tela">' + icon('rotate') + '</button><button class="act act-exit" title="Sair da tela cheia (Esc)">' + icon('x') + '</button>';
   actions.querySelector('.act-full').onclick = () => enterTheater(tile);
   actions.querySelector('.act-chat').onclick = () => toggleChat();
   actions.querySelector('.act-rotate').onclick = rotateTheater;
   actions.querySelector('.act-exit').onclick = exitTheater;
   tile.appendChild(actions);
-  const sbadge = document.createElement('div'); sbadge.className = 'screen-badge'; sbadge.textContent = '🖥️ compartilhando tela'; tile.appendChild(sbadge);
+  const sbadge = document.createElement('div'); sbadge.className = 'screen-badge'; sbadge.innerHTML = icon('monitor') + 'compartilhando tela'; tile.appendChild(sbadge);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
   tile.addEventListener('dblclick', (e) => { if (!e.target.closest('.vol-control, .tile-actions')) togglePin('tile-' + peerId); });
   applySink(video);
@@ -1060,6 +1114,9 @@ function listenForGuests() {
   });
   peer.on('call', (call) => acceptCall(call));
 }
+
+// Ícone do sprite no topo da página (nome fixo, nunca vem de fora)
+function icon(name) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + name + '"/></svg>'; }
 
 function safeSend(conn, msg) { try { if (conn && conn.open) conn.send(msg); } catch (e) {} }
 
@@ -1422,14 +1479,14 @@ function renderBadges(pid) {
   const box = tile.querySelector('.state-badges');
   if (!box) return;
   box.textContent = '';
-  const add = (cls, text) => { const d = document.createElement('div'); d.className = 'sbadge ' + cls; d.textContent = text; box.appendChild(d); };
+  const add = (cls, ic, text) => { const d = document.createElement('div'); d.className = 'sbadge ' + cls; d.innerHTML = icon(ic); d.append(text); box.appendChild(d); };
   const st = pid === 'local' ? myState() : (peerStates[pid] || { mic: true });
-  if (pid === 'local' && !hasMic) add('muted', '🎙️ sem microfone');
-  else if (!st.mic) add('muted', '🔇 mutado');
+  if (pid === 'local' && !hasMic) add('muted', 'mic-off', 'sem microfone');
+  else if (!st.mic) add('muted', 'mic-off', 'mutado');
   if (pid !== 'local') {
-    if (tile.classList.contains('reconnecting')) add('warn', '⟳ reconectando…');
-    else if (peerHealth[pid] && peerHealth[pid].level === 'bad') add('bad', '⚠ conexão ruim');
-    else if (peerHealth[pid] && peerHealth[pid].level === 'warn') add('warn', '⚠ instável');
+    if (tile.classList.contains('reconnecting')) add('warn', 'refresh', 'reconectando…');
+    else if (peerHealth[pid] && peerHealth[pid].level === 'bad') add('bad', 'alert', 'conexão ruim');
+    else if (peerHealth[pid] && peerHealth[pid].level === 'warn') add('warn', 'alert', 'instável');
   }
 }
 
@@ -1461,7 +1518,7 @@ function toggleMic() {
   applyMicGain();
   $('micBtn').classList.toggle('active', micOn);
   $('micBtn').classList.toggle('off', !micOn);
-  $('micBtn').textContent = micOn ? '🎤' : '🔇';
+  $('micBtn').innerHTML = icon(micOn ? 'mic' : 'mic-off');
   sendMyState();
   updateMicAlert();
 }
@@ -1998,7 +2055,7 @@ function notify(msg, important) {
 // ================= v10: layouts (grade / foco / lateral) =================
 let pinnedId = null;
 const LAYOUTS = ['grid', 'focus', 'side'];
-const LAYOUT_LABEL = { grid: '▦ Grade', focus: '◧ Foco', side: '◫ Lateral' };
+const LAYOUT_LABEL = { grid: 'Grade', focus: 'Foco', side: 'Lateral' };
 function focusTileId() {
   if (pinnedId && document.getElementById(pinnedId)) return pinnedId;
   const sharer = Object.keys(peerStates).find((pid) => peerStates[pid].screen && document.getElementById('tile-' + pid));
@@ -2014,7 +2071,7 @@ function applyLayout() {
   grid.classList.toggle('layout-focus', mode === 'focus' && !!fid);
   grid.classList.toggle('layout-side', mode === 'side' && !!fid);
   grid.querySelectorAll('.tile').forEach((t) => { t.classList.toggle('focus', !!fid && t.id === fid); t.classList.toggle('pinned', t.id === pinnedId); });
-  $('layoutBtn').textContent = LAYOUT_LABEL[mode];
+  $('layoutBtn').innerHTML = icon(mode) + LAYOUT_LABEL[mode];
 }
 function cycleLayout() {
   prefs.layout = LAYOUTS[(LAYOUTS.indexOf(prefs.layout) + 1) % LAYOUTS.length];
@@ -2112,7 +2169,8 @@ function updateNetBadge() {
   const rtts = hs.map((h) => h.m && h.m.rtt).filter((v) => typeof v === 'number');
   b.style.display = 'inline-block';
   b.className = worst;
-  b.textContent = '📶 ' + (worst === 'good' ? 'Boa' : worst === 'warn' ? 'Instável' : 'Ruim') + (rtts.length ? ' · ' + Math.round(Math.max(...rtts)) + ' ms' : '');
+  b.innerHTML = icon('signal');
+  b.append((worst === 'good' ? 'Boa' : worst === 'warn' ? 'Instável' : 'Ruim') + (rtts.length ? ' · ' + Math.round(Math.max(...rtts)) + ' ms' : ''));
 }
 $('netBadge').onclick = () => toggleDiag();
 
@@ -2581,7 +2639,7 @@ function renderMusic() {
   $('musicEmpty').style.display = t ? 'none' : '';
   $('musicTitle').textContent = t ? (t.title || t.id) : (music.queue.length ? 'Fim da fila' : 'Nada tocando');
   $('musicBy').textContent = t ? 'Adicionada por ' + t.by : '';
-  $('musicPlay').textContent = music.playing ? '⏸' : '▶';
+  $('musicPlay').innerHTML = icon(music.playing ? 'pause' : 'play');
   $('musicBtn').classList.toggle('active', !$('musicPanel').classList.contains('closed') || music.playing);
   if (!music.playing) $('musicUnlock').style.display = 'none';
   const ol = $('musicQueue');
@@ -2589,10 +2647,10 @@ function renderMusic() {
   music.queue.forEach((item, i) => {
     const li = document.createElement('li');
     if (i === music.cur) li.className = 'cur'; else if (i < music.cur) li.className = 'done';
-    const title = document.createElement('span'); title.className = 'qt'; title.textContent = (i === music.cur ? '▶ ' : '') + (item.title || item.id); title.title = item.title || item.id;
+    const title = document.createElement('span'); title.className = 'qt'; title.textContent = item.title || item.id; title.title = item.title || item.id;
     const by = document.createElement('span'); by.className = 'qb'; by.textContent = item.by;
-    const play = document.createElement('button'); play.textContent = '▶'; play.title = 'Tocar esta'; play.onclick = () => musicCommand({ cmd: 'jump', index: i });
-    const del = document.createElement('button'); del.textContent = '✕'; del.title = 'Tirar da fila'; del.onclick = () => musicCommand({ cmd: 'remove', index: i });
+    const play = document.createElement('button'); play.innerHTML = icon('play'); play.title = 'Tocar esta'; play.onclick = () => musicCommand({ cmd: 'jump', index: i });
+    const del = document.createElement('button'); del.innerHTML = icon('x'); del.title = 'Tirar da fila'; del.onclick = () => musicCommand({ cmd: 'remove', index: i });
     li.append(title, by, play, del);
     ol.appendChild(li);
   });
@@ -2760,7 +2818,7 @@ REACTIONS.forEach((em, i) => {
 });
 function applyReactBar() {
   document.body.classList.toggle('react-off', !prefs.reactBar);
-  $('reactBtn').classList.toggle('active', !!prefs.reactBar);
+  $('reactBtn').classList.toggle('on', !!prefs.reactBar);
 }
 applyReactBar();
 $('reactBtn').onclick = () => {
