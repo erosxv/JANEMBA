@@ -671,6 +671,41 @@
     #joinScreen h1.brand { font-size: 34px; }
     #joinScreen h1.brand .brand-mark { width: 54px; height: 54px; }
   }
+  /* ================= avatares, controles do anfitrião, vídeo no palco ================= */
+  .tile .avatar.has-pic { overflow: hidden; padding: 0; background: #1b1f27 !important; }
+  .avatar.has-pic img, .avatar.has-pic svg, .avprev img, .avprev svg { width: 100%; height: 100%; display: block; border-radius: 50%; object-fit: cover; }
+  .avpick { display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 14px; padding: 8px; background: transparent; border: 1px dashed #2a3338; color: #c9d4d7; font-size: 14px; }
+  .avpick:hover { border-color: #00BDBD; opacity: 1; }
+  .avprev { width: 48px; height: 48px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; background: #182024; color: #9fe7e7; font-weight: 800; font-size: 17px; overflow: hidden; }
+  .czmodal { position: fixed; inset: 0; z-index: 2100; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.65); }
+  .czmodal[hidden] { display: none; }
+  .czbox { width: min(560px, 100%); max-height: 90dvh; overflow: auto; padding: 14px; border-radius: 18px; border: 1px solid #2a2e37; background: #14161c; color: #eaeaea; }
+  .czhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; }
+  .czhead button { background: none; color: #9aa0a6; padding: 4px; }
+  .avgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+  .avopt { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 12px; background: #1b1f27; border: 1px solid transparent; color: #c9ccd1; font-size: 11px; font-weight: 600; }
+  .avopt svg { width: 56px; height: 56px; }
+  .avopt:hover { border-color: #3d4a6b; opacity: 1; }
+  .avopt.sel { border-color: #5b8cff; background: rgba(91,140,255,.12); }
+  .avfoot { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .avfoot > * { flex: 1; text-align: center; cursor: pointer; padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; }
+  /* controles do anfitrião: aparecem ao passar o mouse no cartão (no celular, sempre) */
+  .tile .hostctl { position: absolute; top: 10px; left: 10px; z-index: 3; display: none; gap: 4px; }
+  body.host .tile:not(#tile-local):hover .hostctl, body.host .tile:not(#tile-local):focus-within .hostctl { display: flex; }
+  @media (hover: none) { body.host .tile:not(#tile-local) .hostctl { display: flex; } }
+  .tile .hostctl button { width: 26px; height: 26px; padding: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(10,13,19,.75); color: #e6e8eb; }
+  .tile .hostctl button:hover { background: #e5484d; opacity: 1; }
+  .tile .hostctl .ic { width: 13px; height: 13px; }
+  .tile.theater .hostctl { display: none !important; }
+  /* "Áudio" (compartilhar só o som) */
+  #controls #audioShareBtn.active .cb-ic { background: rgba(124,155,255,.18); color: #9db4ff; }
+  /* vídeo do YouTube grande no palco (o player continua no mesmo lugar do código: só muda de posição na tela) */
+  #musicStageClose { display: none; }
+  body.yt-stage #musicVideo { position: fixed; z-index: 700; left: 12px; right: 12px; top: 64px; height: min(58dvh, calc((100vw - 24px) * 9 / 16)); border-radius: 18px; overflow: hidden; visibility: visible; pointer-events: auto; background: #000; box-shadow: 0 0 0 1px #2a2e37; }
+  body.yt-stage #grid { margin-top: calc(min(58dvh, (100vw - 24px) * 9 / 16) + 8px); }
+  body.yt-stage #musicStageClose { display: flex; position: absolute; top: 10px; right: 10px; z-index: 3; width: 32px; height: 32px; padding: 0; align-items: center; justify-content: center; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; }
+  body.yt-stage.idle #musicStageClose { opacity: 0; }
+  #musicStageBtn.on { color: #9db4ff; }
 </style>
 </head>
 <body>
@@ -714,6 +749,7 @@
   <h1 class="brand"><svg class="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><defs><clipPath id="czClipJoin"><rect x="6" y="6" width="52" height="44" rx="16"/></clipPath></defs><path d="M15 46 L11 59 L30 49 Z" fill="#00BDBD" stroke="#00BDBD" stroke-width="4" stroke-linejoin="round"/><g clip-path="url(#czClipJoin)"><rect x="6" y="6" width="52" height="15" fill="#00BDBD"/><rect x="6" y="20.67" width="52" height="14.66" fill="#F5C000"/><rect x="6" y="35.33" width="52" height="15" fill="#00BDBD"/><path d="M6 6 L33 28 L6 50 Z" fill="#05080A"/></g><rect x="6" y="6" width="52" height="44" rx="16" stroke="#3a474c" stroke-width="1.2"/></svg><span class="wordmark">Call<b>Zinha</b></span></h1>
   <p class="sub">Chamada em grupo por áudio, com tela compartilhada</p>
   <div class="card">
+    <button id="avatarPick" class="avpick" type="button" title="Escolher avatar"><span id="avatarPreview" class="avprev"></span><span>Escolher avatar</span></button>
     <label for="nameInput">Seu nome</label>
     <input id="nameInput" placeholder="Ex: João" maxlength="20">
     <label for="roomInput">Código da sala</label>
@@ -738,7 +774,7 @@
   <div id="micAlert"><span id="micAlertText"></span><button id="micAlertBtn"></button></div>
   <div id="grid"></div>
   <div id="controls">
-    <div class="cgroup"><button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="cb-lbl">Mic</span></button><button id="screenBtn" class="ctrl-btn" title="Compartilhar tela"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-screen"/></svg></span><span class="cb-lbl">Tela</span></button><button id="swapScreenBtn" class="ctrl-btn" title="Trocar o que você está compartilhando (outra tela, janela ou aba)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg></span><span class="cb-lbl">Trocar</span></button><button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></span><span class="cb-lbl">Música</span></button></div>
+    <div class="cgroup"><button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="cb-lbl">Mic</span></button><button id="screenBtn" class="ctrl-btn" title="Compartilhar tela"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-screen"/></svg></span><span class="cb-lbl">Tela</span></button><button id="swapScreenBtn" class="ctrl-btn" title="Trocar o que você está compartilhando (outra tela, janela ou aba)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg></span><span class="cb-lbl">Trocar</span></button><button id="audioShareBtn" class="ctrl-btn" title="Compartilhar só o áudio (Spotify, YouTube, jogo), sem mostrar a tela"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg></span><span class="cb-lbl">Áudio</span></button><button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></span><span class="cb-lbl">Música</span></button></div>
     <span class="cdiv"></span>
     <div class="cgroup"><button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span id="chatBadge"></span></span><span class="cb-lbl">Chat</span></button><button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg></span><span class="cb-lbl">Reações</span></button></div>
     <span class="cdiv"></span>
@@ -763,7 +799,7 @@
 
 <div id="musicPanel" class="closed">
   <div class="mhead"><span><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg>Música da sala</span><button id="musicClose" title="Fechar (a música continua)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
-  <div id="musicVideo"><div id="musicEmpty">Cole um link do YouTube abaixo para tocar para todo mundo da sala.</div><div id="musicPlayer"></div></div>
+  <div id="musicVideo"><div id="musicEmpty">Cole um link do YouTube abaixo para tocar para todo mundo da sala.</div><div id="musicPlayer"></div><button id="musicStageClose" title="Tirar o vídeo do palco"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
   <div id="musicBody">
     <div><div id="musicTitle">Nada tocando</div><div id="musicBy"></div></div>
     <input type="range" id="musicSeek" min="0" max="0" value="0" step="1" aria-label="Posição da música">
@@ -772,6 +808,7 @@
       <button id="musicPrev" title="Anterior"><svg class="ic" aria-hidden="true"><use href="#i-prev"/></svg></button>
       <button id="musicPlay" title="Tocar/pausar para todos"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></button>
       <button id="musicNext" title="Próxima"><svg class="ic" aria-hidden="true"><use href="#i-next"/></svg></button>
+      <button id="musicStageBtn" title="Ver o vídeo grande no palco"><svg class="ic" aria-hidden="true"><use href="#i-maximize"/></svg></button>
       <label title="Volume da música só para você"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg><input type="range" id="musicVol" min="0" max="100"></label>
     </div>
     <button id="musicUnlock" style="display:none"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Clique para ouvir a música aqui</button>
@@ -786,6 +823,17 @@
   <div id="chatLog" aria-live="polite"></div>
   <form id="chatForm"><input id="chatInput" type="text" maxlength="500" placeholder="Escreva uma mensagem" autocomplete="off"><button type="submit">Enviar</button></form>
   <div class="chint">As mensagens somem 30 minutos depois de enviadas.</div>
+</div>
+
+<div id="avatarModal" class="czmodal" hidden>
+  <div class="czbox" role="dialog" aria-label="Escolher avatar">
+    <div class="czhead"><span>Escolha seu avatar</span><button id="avatarClose" title="Fechar"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div id="avatarGrid" class="avgrid"></div>
+    <div class="avfoot">
+      <label class="btn-ghost avfile">Usar uma foto<input type="file" id="avatarFile" accept="image/*" hidden></label>
+      <button id="avatarNone" class="btn-ghost" type="button">Só as iniciais</button>
+    </div>
+  </div>
 </div>
 
 <div id="settingsOverlay"></div>
@@ -902,7 +950,9 @@
           <option value="live">Ao vivo: vídeo em cima e chat sempre aberto</option>
         </select>
       </div>
+      <div class="srow inline"><span class="lbl">Seu avatar</span><button id="setAvatarBtn" class="sbtn">Escolher</button></div>
       <div class="srow inline"><label for="setNotices">Avisos de entrada e saída</label><input type="checkbox" id="setNotices"></div>
+      <div class="srow inline"><label for="setSounds">Sons de entrada e saída</label><input type="checkbox" id="setSounds"></div>
       <div class="hint">O visual só muda a sua tela. Dica: dê duplo clique em alguém para colocá-lo em destaque.</div>
     </section>
   </div>
@@ -927,7 +977,7 @@ const DEFAULT_PREFS = {
   noise: 'ai',            // 'ai' (RNNoise) | 'browser' | 'off'
   echo: true, agc: true, gain: 100, gateOn: false, gateThr: -50,
   res: 1080, fps: 30, screenMode: 'detail', screenAudio: false,
-  shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60, reactBar: true, visual: 'auto'
+  shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60, reactBar: true, visual: 'auto', sounds: true, avatar: ''
 };
 function loadPrefs() {
   try { return Object.assign({}, DEFAULT_PREFS, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); }
@@ -1096,7 +1146,7 @@ function joinAsGuest(attempt) {
       resetRoomState();
       enterCallUI(); addLocalTile();
       p.on('call', (call) => acceptCall(call));
-      conn.send({ type: 'hello', name: myName });
+      conn.send({ type: 'hello', name: myName, av: prefs.avatar || '' });
       sendMyState();
       callPeer(hostId, remoteNames[hostId]);
       keepAlive(p);
@@ -1133,7 +1183,7 @@ function relinkHost(p) {
       clearTimeout(timer); p._relink = null;
       conns[hostId()] = c; lastFromHost = Date.now();
       wireHostConn(p, c, () => true);
-      c.send({ type: 'hello', name: myName });
+      c.send({ type: 'hello', name: myName, av: prefs.avatar || '' });
       sendMyState();
       if (!calls[hostId()]) callPeer(hostId(), remoteNames[hostId()]);
       toast("Reconectado ao anfitrião");
@@ -1312,7 +1362,7 @@ function addLocalTile() {
   addTileActions(tile);
   const mic = document.createElement('div'); mic.className = 'micst'; tile.appendChild(mic);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
-  setTileName(tile, myName);
+  setTileName(tile, myName, prefs.avatar);
   tile.addEventListener('dblclick', (e) => { if (!e.target.closest('.vol-control, .tile-actions')) togglePin('tile-local'); });
   $('grid').appendChild(tile);
   updateCount();
@@ -1350,7 +1400,13 @@ function addRemoteTile(peerId, name) {
   const sbadge = document.createElement('div'); sbadge.className = 'screen-badge'; sbadge.innerHTML = icon('monitor') + 'compartilhando tela'; tile.appendChild(sbadge);
   const mic = document.createElement('div'); mic.className = 'micst'; tile.appendChild(mic);
   const sb = document.createElement('div'); sb.className = 'state-badges'; tile.appendChild(sb);
-  setTileName(tile, name || 'Participante');
+  setTileName(tile, name || 'Participante', remoteAvatars[peerId]);
+  // controles do anfitrião (mutar ou tirar da sala)
+  const hc = document.createElement('div'); hc.className = 'hostctl';
+  hc.innerHTML = '<button class="hc-mute" title="Mutar esta pessoa">' + icon('mic-off') + '</button><button class="hc-kick" title="Tirar da sala">' + icon('x') + '</button>';
+  hc.querySelector('.hc-mute').onclick = (e) => { e.stopPropagation(); hostMute(peerId); };
+  hc.querySelector('.hc-kick').onclick = (e) => { e.stopPropagation(); hostKick(peerId); };
+  tile.appendChild(hc);
   tile.addEventListener('dblclick', (e) => { if (!e.target.closest('.vol-control, .tile-actions')) togglePin('tile-' + peerId); });
   applySink(video);
   $('grid').appendChild(tile);
@@ -1387,7 +1443,7 @@ function listenForGuests() {
       clearTimeout(leaveTimers[conn.peer]); delete leaveTimers[conn.peer];
       conn._seen = Date.now();
       hostConns[conn.peer] = conn;
-      conn.send({ type: 'welcome', name: myName, state: myState() });
+      conn.send({ type: 'welcome', name: myName, state: myState(), av: prefs.avatar || '' });
       if (music.queue.length) safeSend(conn, musicPayload());
       if (chatLog.length) safeSend(conn, chatHistoryPayload());
     });
@@ -1417,10 +1473,13 @@ function setCtrlIcon(id, name) { $(id).querySelector('.cb-ic').innerHTML = icon(
 // Cartão: pílula do nome (nome, situação e mini equalizador) e cor do avatar, sempre a mesma para o mesmo nome
 const AV_COLORS = [['#2a3558', '#c7d4ff'], ['#1f4a45', '#b9f3e2'], ['#47305c', '#ecd3ff'], ['#4d3a1f', '#ffe1b0'], ['#4f2a36', '#ffc9d6'], ['#283e55', '#c4e3ff']];
 function buildTag(tag) { tag.innerHTML = '<span class="nm"></span><span class="st"></span><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>'; }
-function setTileName(tile, name) {
+function setTileName(tile, name, av) {
   tile.querySelector('.tag .nm').textContent = name;
   tile.querySelector('.tag .nm').title = name;
-  tile.querySelector('.avatar').textContent = initials(name);
+  const avEl = tile.querySelector('.avatar');
+  const pic = avatarMarkup(av);
+  avEl.classList.toggle('has-pic', !!pic);
+  if (pic) avEl.innerHTML = pic; else avEl.textContent = initials(name);
   let hsh = 0;
   for (const c of String(name)) hsh = (hsh * 31 + c.codePointAt(0)) >>> 0;
   const [bg, fg] = AV_COLORS[hsh % AV_COLORS.length];
@@ -1433,8 +1492,9 @@ function broadcastRoster() {
   const roster = Object.keys(hostConns).concat([peer.id]);
   const names = Object.assign({ [peer.id]: myName }, remoteNames);
   const states = Object.assign({}, peerStates, { [peer.id]: myState() });
+  const avatars = Object.assign({}, remoteAvatars, { [peer.id]: prefs.avatar || '' });
   for (const id in hostConns) {
-    safeSend(hostConns[id], { type: 'roster', peers: roster.filter(p => p !== id), names, states });
+    safeSend(hostConns[id], { type: 'roster', peers: roster.filter(p => p !== id), names, states, avatars });
   }
 }
 
@@ -1458,7 +1518,7 @@ function sendMyState() {
 }
 function sendMyName() {
   if (!peer) return;
-  const msg = { type: 'name', name: myName };
+  const msg = { type: 'name', name: myName, av: prefs.avatar || '' };
   if (isHost) { for (const id in hostConns) safeSend(hostConns[id], Object.assign({}, msg, { from: peer.id })); }
   else safeSend(conns[hostId()], msg);
 }
@@ -1470,7 +1530,7 @@ function setPeerState(pid, st) {
   applyPeerState(pid);
 }
 
-function announcePresence(pid, joined) { notify((joined ? '➕ ' : '➖ ') + nameOf(pid) + (joined ? ' entrou' : ' saiu')); }
+function announcePresence(pid, joined) { notify((joined ? '➕ ' : '➖ ') + nameOf(pid) + (joined ? ' entrou' : ' saiu')); playCue(joined); }
 
 // Remove tudo de um participante que saiu da sala
 function dropPeer(pid) {
@@ -1494,16 +1554,20 @@ function handleData(fromId, msg) {
   if (msg.type === 'hello') {
     const first = !(from in remoteNames);
     remoteNames[from] = cleanName(msg.name) || 'Participante';
+    setRemoteAvatar(from, msg.av);
     updateTileName(from);
     if (isHost) { if (first) announcePresence(from, true); broadcastRoster(); }
   } else if (msg.type === 'welcome') {
     remoteNames[from] = cleanName(msg.name) || 'Participante';
+    setRemoteAvatar(from, msg.av);
     if (msg.state) setPeerState(from, msg.state);
     updateTileName(from);
   } else if (msg.type === 'roster') {
     if (!viaHost) return;
     const names = msg.names || {}, states = msg.states || {};
     for (const k in names) if (k !== peer.id) remoteNames[k] = cleanName(names[k]) || 'Participante';
+    const avs = msg.avatars || {};
+    for (const k in avs) if (k !== peer.id) setRemoteAvatar(k, avs[k]);
     for (const k in states) if (k !== peer.id && states[k]) setPeerState(k, states[k]);
     const list = (msg.peers || []).filter(pid => pid !== peer.id);
     const before = knownPeers;
@@ -1523,8 +1587,13 @@ function handleData(fromId, msg) {
     if (isHost) relay(fromId, { type: 'state', mic: !!msg.mic, screen: !!msg.screen });
   } else if (msg.type === 'name') {
     remoteNames[from] = cleanName(msg.name) || 'Participante';
+    setRemoteAvatar(from, msg.av);
     updateTileName(from);
-    if (isHost) relay(fromId, { type: 'name', name: remoteNames[from] });
+    if (isHost) relay(fromId, { type: 'name', name: remoteNames[from], av: remoteAvatars[from] || '' });
+  } else if (msg.type === 'host-mute') {
+    if (viaHost && hasMic && micOn) { toggleMic(); toast('O anfitrião mutou seu microfone'); }
+  } else if (msg.type === 'kick') {
+    if (viaHost) { try { sessionStorage.setItem('cz-kicked', roomId); } catch (e) {} location.href = location.pathname; }
   } else if (msg.type === 'music') {
     if (viaHost) receiveMusic(msg);
   } else if (msg.type === 'music-cmd') {
@@ -1541,7 +1610,7 @@ function handleData(fromId, msg) {
 function updateTileName(peerId) {
   const tile = document.getElementById('tile-' + peerId);
   if (tile && remoteNames[peerId]) {
-    setTileName(tile, remoteNames[peerId]);
+    setTileName(tile, remoteNames[peerId], remoteAvatars[peerId]);
   }
 }
 
@@ -1932,6 +2001,7 @@ function describeScreen() {
 }
 
 async function startScreenShare() {
+  if (audioShareStream) stopAudioShare(true);
   try {
     try { screenStream = await navigator.mediaDevices.getDisplayMedia(screenConstraints()); }
     catch (e) {
@@ -2424,6 +2494,7 @@ function currentVisual(fid) {
 function applyLayout() {
   const grid = $('grid');
   if (!grid) return;
+  document.body.classList.toggle('host', !!isHost);
   const stages = stageTileIds();   // telas compartilhadas (ou quem foi fixado) viram o palco
   const fid = stages[0] || null;
   const v = currentVisual(fid);
@@ -2699,6 +2770,7 @@ function initSettingsValues() {
   $('setRes').value = String(prefs.res); $('setFps').value = String(prefs.fps);
   $('setScreenMode').value = prefs.screenMode; $('setScreenAudio').checked = !!prefs.screenAudio;
   $('setNotices').checked = !!prefs.notices;
+  $('setSounds').checked = !!prefs.sounds;
   $('setMonitorSrc').value = monitorSrc;
   const aiOpt = [...$('setNoise').options].find((o) => o.value === 'ai');
   if (aiOpt) aiOpt.disabled = !workletSupported();
@@ -2713,7 +2785,7 @@ $('setName').onchange = (e) => {
   myName = cleanName(e.target.value) || 'Anônimo';
   prefs.name = myName === 'Anônimo' ? '' : myName; savePrefs();
   const tile = $('tile-local');
-  if (tile) setTileName(tile, myName);
+  if (tile) setTileName(tile, myName, prefs.avatar);
   sendMyName();
   if (isHost && peer) broadcastRoster();
 };
@@ -2736,6 +2808,7 @@ $('setFps').onchange = (e) => { prefs.fps = Number(e.target.value); savePrefs();
 $('setScreenMode').onchange = (e) => { prefs.screenMode = e.target.value; savePrefs(); applyScreenSettingsLive(); };
 $('setScreenAudio').onchange = (e) => { prefs.screenAudio = e.target.checked; savePrefs(); if (sharingScreen) toast('O áudio da tela vale na próxima vez que você compartilhar.'); };
 $('setNotices').onchange = (e) => { prefs.notices = e.target.checked; savePrefs(); };
+$('setSounds').onchange = (e) => { prefs.sounds = e.target.checked; savePrefs(); if (prefs.sounds) playCue(true); };
 $('monitorBtn').onclick = () => toggleMonitor();
 $('setMonitorSrc').onchange = (e) => { monitorSrc = e.target.value; if (monitorOn) connectMonitor(); };
 $('setShortcutBtn').onclick = () => {
@@ -2755,6 +2828,7 @@ $('setShortcutBtn').onclick = () => {
 
 // Estado inicial da tela de entrada: nome salvo e pré-carregamento do filtro de IA (não atrapalha a abertura da página)
 if (prefs.name) $('nameInput').value = prefs.name;
+try { const k = sessionStorage.getItem('cz-kicked'); if (k) { sessionStorage.removeItem('cz-kicked'); setStatus('O anfitrião tirou você da sala ' + k + '.'); } } catch (e) {}
 if (prefs.noise === 'ai' && workletSupported()) {
   const warm = () => loadRnnoiseAssets().catch(() => {});
   if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 3000 }); else setTimeout(warm, 1500);
@@ -2877,7 +2951,7 @@ window.addEventListener('resize', layoutTheater);
 window.addEventListener('orientationchange', layoutTheater);
 
 // Celular não consegue compartilhar tela: esconde o botão
-if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) $('screenBtn').style.display = 'none';
+if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { $('screenBtn').style.display = 'none'; $('audioShareBtn').style.display = 'none'; }
 
 // Qualquer toque libera áudio/vídeo que o navegador tenha bloqueado
 document.addEventListener('click', () => {
@@ -3328,6 +3402,175 @@ document.addEventListener('pointerup', (e) => {
   if (e.target.closest('button, input, label, .vol-control, #chatPanel, #reactBar')) return;
   if (!wasIdle) { clearTimeout(idleTimer); document.body.classList.add('idle'); }
 });
+
+// ================= avatares: 24 heróis originais (desenhados aqui, não são personagens de editoras), foto ou iniciais =================
+// O avatar fica guardado no aparelho (prefs.avatar) e vai para a sala junto com o nome: 'h:N' (herói) ou uma foto pequena em JPEG.
+const HEROES = [
+  ['Relâmpago', '#1d3b7a', '#e8b400', '#b81d24', '#2a1a10', 'bolt'],   ['Capitã Estrela', '#7a1d2b', '#1f4fa8', '#1f4fa8', '#e2b04a', 'star'],
+  ['Sombra Noturna', '#151a2b', '#2b2f3d', '#0b0d14', '#0b0d14', 'moon'], ['Fênix', '#7a2e0e', '#d9531e', '#f2b134', '#c2410c', 'flame'],
+  ['Muralha', '#2f4a2a', '#5a7d3a', '#3a3f2a', '#3b2a1a', 'shield'],     ['Tsunami', '#0d4a5a', '#1aa0b8', '#0d4a5a', '#2a1a10', 'wave'],
+  ['Pantera', '#1a1a1f', '#3b2d4f', '#141018', '#141018', 'claw'],       ['Coruja', '#3a2a1a', '#7a5a2a', '#4a3520', '#6b4a2a', 'eye'],
+  ['Cometa', '#2a1a5a', '#6a3fd1', '#ffffff', '#f2f2f2', 'star'],        ['Trovão', '#3a3a4a', '#7f8a9a', '#2a2f3a', '#e8e8e8', 'bolt'],
+  ['Raposa', '#5a2a0e', '#d97a1e', '#5a2a0e', '#c2410c', 'leaf'],        ['Vespa', '#3a3200', '#e8c400', '#1a1a1a', '#1a1a1a', 'diamond'],
+  ['Aurora', '#0e3a3a', '#2fc7a0', '#7a3fd1', '#f2c7e0', 'crown'],       ['Ciclone', '#1a3a4a', '#5ab0d9', '#1a3a4a', '#2a2a2a', 'wave'],
+  ['Faísca', '#4a1a1a', '#e83a3a', '#f2b134', '#f2b134', 'bolt'],        ['Geada', '#1a3a5a', '#bfe6ff', '#5ab0d9', '#ffffff', 'diamond'],
+  ['Vulcão', '#3a1408', '#a3290e', '#1a0a05', '#1a0a05', 'flame'],       ['Lua Negra', '#120f24', '#3a2f6a', '#0b0a14', '#cfc7ff', 'moon'],
+  ['Escudo', '#0e2a5a', '#c7cdd8', '#b81d24', '#3b2a1a', 'shield'],      ['Falcão', '#2a1f14', '#8a6a3a', '#3a2a1a', '#3a2a1a', 'eye'],
+  ['Nebulosa', '#2a0e3a', '#b03fd1', '#3a0e5a', '#ff8ad8', 'star'],      ['Titã', '#3a2a0e', '#b08a3a', '#5a3a0e', '#2a1a0e', 'crown'],
+  ['Viúva Escarlate', '#2a0a10', '#1a1a1f', '#b81d24', '#b81d24', 'heart'], ['Guardião Verde', '#0e2a14', '#2a8a3a', '#0e3a1a', '#1a1a10', 'leaf']
+];
+const HERO_SKIN = ['#f1c7a3', '#d9a27c', '#a86b4a', '#7a4a32', '#f5d6b8'];
+const EMBLEM = {
+  bolt: 'M34 46 L28 54 H32 L30 61 L37 52 H33 L35 46 Z',
+  star: 'M32 45 L34.4 50.2 L40 50.8 L35.8 54.4 L37 60 L32 57.2 L27 60 L28.2 54.4 L24 50.8 L29.6 50.2 Z',
+  moon: 'M35 46 A7 7 0 1 0 35 60 A5.5 5.5 0 1 1 35 46 Z',
+  flame: 'M32 45 C36 50 38 53 36 57 C35 59.5 33.5 61 32 61 C29 61 27 58.5 27.5 55.5 C28 53 30 52 30.5 49 C32 51 33 52 33 54 C34 52 34 49 32 45 Z',
+  shield: 'M32 45 L39 47.5 V53 C39 57 36 59.5 32 61 C28 59.5 25 57 25 53 V47.5 Z',
+  wave: 'M24 55 C26 51 29 51 31 54 C33 57 36 57 38 53 L40 53 C38 59 33 60 30 57 C28 55 26 55 25 57 Z',
+  claw: 'M27 46 L29 60 M32 45 L32 61 M37 46 L35 60',
+  eye: 'M24 53 C28 47 36 47 40 53 C36 59 28 59 24 53 Z M32 50.5 A2.5 2.5 0 1 0 32 55.5 A2.5 2.5 0 1 0 32 50.5 Z',
+  leaf: 'M26 59 C26 50 31 46 39 46 C39 54 35 59 26 59 Z M27 58 L35 50',
+  diamond: 'M32 45 L39 53 L32 61 L25 53 Z',
+  crown: 'M25 58 L26 49 L29.5 53 L32 47 L34.5 53 L38 49 L39 58 Z',
+  heart: 'M32 60 C25 55 24 51 26.5 48.5 C28.5 46.5 31 47.5 32 49.5 C33 47.5 35.5 46.5 37.5 48.5 C40 51 39 55 32 60 Z'
+};
+function heroSVG(n) {
+  const [, bg, suit, mask, hair, emb] = HEROES[n];
+  const skin = HERO_SKIN[n % HERO_SKIN.length];
+  const stroke = emb === 'claw';
+  return '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="' + bg + '"/>'
+    + '<path d="M8 64 C10 46 21 41 32 41 C43 41 54 46 56 64 Z" fill="' + suit + '"/>'
+    + '<circle cx="32" cy="27" r="13" fill="' + skin + '"/>'
+    + '<path d="M19 26 C19 12 45 12 45 26 C42 19 22 19 19 26 Z" fill="' + hair + '"/>'
+    + '<path d="M18.5 25 Q32 20 45.5 25 L45 30.5 Q32 26.5 19 30.5 Z" fill="' + mask + '"/>'
+    + '<ellipse cx="26" cy="27.3" rx="3.2" ry="1.7" fill="#fff"/><ellipse cx="38" cy="27.3" rx="3.2" ry="1.7" fill="#fff"/>'
+    + '<path d="M28 34.5 Q32 37 36 34.5" stroke="#5a3a2a" stroke-width="1.3" fill="none" stroke-linecap="round"/>'
+    + '<path d="' + EMBLEM[emb] + '" ' + (stroke ? 'stroke="#f2f2f2" stroke-width="2.2" stroke-linecap="round" fill="none"' : 'fill="#f6f1e4"') + '/></svg>';
+}
+const remoteAvatars = {};
+function cleanAvatar(av) {
+  av = String(av || '');
+  const m = /^h:(\d{1,2})$/.exec(av);
+  if (m && Number(m[1]) < HEROES.length) return av;
+  if (av.startsWith('p:data:image/jpeg;base64,') && av.length < 60000 && /^[A-Za-z0-9+/=]+$/.test(av.slice(25))) return av;
+  return '';
+}
+function avatarMarkup(av) {
+  av = cleanAvatar(av);
+  if (av.startsWith('h:')) return heroSVG(Number(av.slice(2)));
+  if (av.startsWith('p:')) return '<img alt="" src="' + av.slice(2) + '">';
+  return '';
+}
+function setRemoteAvatar(pid, av) {
+  const v = cleanAvatar(av);
+  if ((remoteAvatars[pid] || '') === v) return;
+  remoteAvatars[pid] = v;
+  updateTileName(pid);
+}
+function renderAvatarPreview() {
+  const p = $('avatarPreview'), pic = avatarMarkup(prefs.avatar);
+  if (pic) p.innerHTML = pic; else p.textContent = initials($('nameInput').value.trim() || prefs.name || '?');
+  document.querySelectorAll('#avatarGrid .avopt').forEach((b) => b.classList.toggle('sel', prefs.avatar === 'h:' + b.dataset.n));
+}
+function setMyAvatar(av) {
+  prefs.avatar = cleanAvatar(av); savePrefs();
+  renderAvatarPreview();
+  const tile = $('tile-local'); if (tile) setTileName(tile, myName, prefs.avatar);
+  sendMyName();
+  if (isHost && peer) broadcastRoster();
+}
+HEROES.forEach((hero, n) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'avopt'; b.dataset.n = n;
+  b.innerHTML = heroSVG(n); b.append(hero[0]);
+  b.onclick = () => { setMyAvatar('h:' + n); $('avatarModal').hidden = true; };
+  $('avatarGrid').appendChild(b);
+});
+// foto: recorta o meio em quadrado e reduz para 128x128 (fica leve para mandar para a sala)
+$('avatarFile').onchange = async (e) => {
+  const f = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const img = await createImageBitmap(f);
+    const s = Math.min(img.width, img.height), c = document.createElement('canvas'); c.width = c.height = 128;
+    c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 128, 128);
+    let url = c.toDataURL('image/jpeg', 0.8);
+    if (url.length > 55000) url = c.toDataURL('image/jpeg', 0.5);
+    setMyAvatar('p:' + url); $('avatarModal').hidden = true;
+  } catch (err) { toast('Não consegui usar essa imagem. Tente outra.'); }
+};
+$('avatarNone').onclick = () => { setMyAvatar(''); $('avatarModal').hidden = true; };
+const openAvatarPicker = () => { renderAvatarPreview(); $('avatarModal').hidden = false; };
+$('avatarPick').onclick = openAvatarPicker;
+$('setAvatarBtn').onclick = openAvatarPicker;
+$('avatarClose').onclick = () => { $('avatarModal').hidden = true; };
+$('avatarModal').addEventListener('click', (e) => { if (e.target === $('avatarModal')) $('avatarModal').hidden = true; });
+$('nameInput').addEventListener('input', renderAvatarPreview);
+renderAvatarPreview();
+
+// ================= sons de entrada e saída (um "plim" curtinho, gerado na hora) =================
+function playCue(up) {
+  if (!prefs.sounds) return;
+  try {
+    const ctx = getAudioCtx(), t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(up ? 660 : 880, t); o.frequency.linearRampToValueAtTime(up ? 990 : 520, t + 0.18);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.32);
+  } catch (e) {}
+}
+
+// ================= controles do anfitrião (quem abriu a sala): mutar ou tirar alguém =================
+// Só o anfitrião manda; o convidado só obedece se a mensagem veio do anfitrião.
+function hostMute(pid) {
+  if (!isHost) return;
+  safeSend(hostConns[pid], { type: 'host-mute' });
+  toast(nameOf(pid) + ' foi mutado');
+}
+function hostKick(pid) {
+  if (!isHost || !confirm('Tirar ' + nameOf(pid) + ' da sala?')) return;
+  safeSend(hostConns[pid], { type: 'kick' });
+  setTimeout(() => { const c = hostConns[pid]; try { if (c) c.close(); } catch (e) {} }, 500);
+  toast(nameOf(pid) + ' foi tirado da sala');
+}
+
+// ================= compartilhar só o áudio =================
+// O navegador só libera o som de outra aba/programa junto com uma tela: a imagem é descartada na hora e só o som vai para a sala.
+let audioShareStream = null;
+async function toggleAudioShare() {
+  if (audioShareStream) { stopAudioShare(); return; }
+  if (sharingScreen) { toast('Você já está compartilhando a tela. O som dela vai junto se você marcou "Compartilhar áudio".'); return; }
+  let s;
+  try { s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+  catch (e) { return; }
+  const at = s.getAudioTracks()[0];
+  s.getVideoTracks().forEach((t) => t.stop());
+  if (!at) { toast('Faltou marcar "Compartilhar áudio" na janela. Tente de novo.'); return; }
+  audioShareStream = s;
+  connectScreenAudio(at);
+  $('audioShareBtn').classList.add('active');
+  toast('Compartilhando só o áudio');
+  at.onended = () => { if (audioShareStream === s) stopAudioShare(); };
+}
+function stopAudioShare(quiet) {
+  const s = audioShareStream; audioShareStream = null;
+  if (s) s.getTracks().forEach((t) => { t.onended = null; t.stop(); });
+  disconnectScreenAudio();
+  $('audioShareBtn').classList.remove('active');
+  if (!quiet) toast('Parou de compartilhar o áudio');
+}
+$('audioShareBtn').onclick = toggleAudioShare;
+
+// ================= vídeo do YouTube grande no palco (cada um escolhe para si) =================
+function toggleYtStage(force) {
+  const on = typeof force === 'boolean' ? force : !document.body.classList.contains('yt-stage');
+  if (on && !musicTrack()) { toast('Cole um link do YouTube no painel de música primeiro.'); return; }
+  if (on) ensureYT();
+  document.body.classList.toggle('yt-stage', on);
+  $('musicStageBtn').classList.toggle('on', on);
+  if (on) toggleMusicPanel(false);
+}
+$('musicStageBtn').onclick = () => toggleYtStage();
+$('musicStageClose').onclick = () => toggleYtStage(false);
 
 window.onbeforeunload = () => { if (peer) peer.destroy(); };
 window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // celular: libera o ID da sala mais rápido
