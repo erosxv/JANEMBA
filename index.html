@@ -604,9 +604,12 @@
   #topbar .roomChip { padding: 0; border: none; background: none; gap: 6px; }
   #topbar .roomChip b { font-size: 13px; }
   #topbar .roomMeta { gap: 6px; }
-  #extrasBtn, #visualBtn, #copyLinkBtn { height: 34px; padding: 0 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: #c8ccd4; font-weight: 500; }
-  #extrasBtn:hover, #visualBtn:hover, #copyLinkBtn:hover { background: #181b21; opacity: 1; }
+  #gamesBtn, #extrasBtn, #visualBtn, #copyLinkBtn { height: 34px; padding: 0 10px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: #c8ccd4; font-weight: 500; }
+  #gamesBtn:hover, #extrasBtn:hover, #visualBtn:hover, #copyLinkBtn:hover { background: #181b21; opacity: 1; }
   #extrasBtn.active { background: #181b21; color: #c9b8ff; }
+  #gamesBtn.active { background: #181b21; color: #3ddc97; }
+  #gamesBtn.loading .ic { animation: fxPulse .8s ease-in-out infinite; }
+  @keyframes fxPulse { 50% { opacity: .35; } }
   #shortcutHint { display: none; }
   /* cartões tingidos com a cor de cada pessoa; quem está mudo fica apagado em vez de ganhar selo vermelho */
   #grid .tile:not(.focus) { border: none; border-radius: 20px; background: #171a21; background: color-mix(in srgb, var(--av-bg, #2a3558) 55%, #101216); transition: opacity .2s ease, box-shadow .15s ease; }
@@ -767,6 +770,7 @@
   <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0Z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></symbol>
   <symbol id="i-popout" viewBox="0 0 24 24"><path d="M21 9V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><rect width="10" height="7" x="12" y="13" rx="2"/></symbol>
   <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></symbol>
+  <symbol id="i-gamepad" viewBox="0 0 24 24"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.59C2.6 9.42 2 14.46 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.41-1.41A2 2 0 0 1 9.83 16h4.34a2 2 0 0 1 1.41.59L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.54-.6-6.58-.69-7.26A4 4 0 0 0 17.32 5Z"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
 </svg>
 
@@ -792,6 +796,7 @@
     <div class="brandMini" title="CallZinha"><svg class="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><defs><clipPath id="czClipTop"><rect x="6" y="6" width="52" height="44" rx="16"/></clipPath></defs><path d="M15 46 L11 59 L30 49 Z" fill="#00BDBD" stroke="#00BDBD" stroke-width="4" stroke-linejoin="round"/><g clip-path="url(#czClipTop)"><rect x="6" y="6" width="52" height="15" fill="#00BDBD"/><rect x="6" y="20.67" width="52" height="14.66" fill="#F5C000"/><rect x="6" y="35.33" width="52" height="15" fill="#00BDBD"/><path d="M6 6 L33 28 L6 50 Z" fill="#05080A"/></g><rect x="6" y="6" width="52" height="44" rx="16" stroke="#3a474c" stroke-width="1.2"/></svg><span class="wordmark">Call<b>Zinha</b></span></div>
     <div class="roomInfo"><span class="roomChip"><span>Sala</span><b id="roomLabel"></b></span><span class="roomMeta"><span id="netDot" class="cdot"></span><span><span id="peerCount">1</span> na chamada</span><button id="netBadge" title="Qualidade da conexão: clique para ver os detalhes"></button></span></div>
     <div class="topActions">
+      <button id="gamesBtn" class="top-btn" title="Jogos para jogar com a sala" aria-haspopup="dialog" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"/></svg><span class="txt">Jogos</span></button>
       <button id="extrasBtn" class="top-btn" title="Extras: sons, roleta, dado, moeda e enquete" aria-haspopup="dialog" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-sparkles"/></svg><span class="txt">Extras</span></button>
       <div class="vwrap"><button id="visualBtn" class="top-btn" title="Visual da sala (só muda a sua tela)" aria-haspopup="menu" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="txt">Automático</span></button><div id="visualMenu" class="vmenu" role="menu" aria-label="Visual da sala" hidden><button class="vitem" data-v="cinema" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-cinema"/></svg><span class="vtx"><b>Cinema</b><small>A tela compartilhada em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="roda" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="vtx"><b>Roda</b><small>As pessoas em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="live" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-live"/></svg><span class="vtx"><b>Ao vivo</b><small>Vídeo em cima, chat embaixo</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><div class="vsep"></div><label class="vauto"><span>Escolher sozinho<small>Celular: Ao vivo · computador: Cinema ou Roda</small></span><input type="checkbox" id="visualAuto" role="switch"></label></div></div>
       <button id="copyLinkBtn" title="Copiar link de convite"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="txt">Copiar link</span></button>
@@ -3209,7 +3214,8 @@ function ensureYT() {
   return ytLoading;
 }
 
-function applyMusicVolume() { if (ytReady) ytPlayer.setVolume(Math.max(0, Math.min(100, Number(prefs.musicVol) || 0))); }
+let musicDucked = false;   // um jogo (ex.: Adivinhe a música) pediu silêncio na música da sala
+function applyMusicVolume() { if (ytReady) ytPlayer.setVolume(musicDucked ? 0 : Math.max(0, Math.min(100, Number(prefs.musicVol) || 0))); }
 
 function onYTState(e) {
   if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.CUED) musicDuration = ytPlayer.getDuration() || musicDuration;
@@ -3627,22 +3633,24 @@ $('chatForm').onsubmit = (e) => {
 
 // ================= extras (sons, roleta, dado, moeda, enquete) =================
 // Tudo isso mora em extras/festa.js, que só é baixado quando alguém usa: quem só conversa não carrega nada a mais.
-const FX_VER = '3';
+const FX_VER = '4';
 const FX_COMMANDS = ['ajuda', 'dado', 'moeda', 'roleta', 'enquete', 'som'];
 const fxSeen = {};   // anfitrião: peerId -> último extra repassado (segura quem clica sem parar)
-let extrasPromise = null;
-function loadExtras() {
-  if (!extrasPromise) {
-    extrasPromise = new Promise((ok, fail) => {
+const fxModules = {};
+function loadModule(file, global) {
+  if (!fxModules[file]) {
+    fxModules[file] = new Promise((ok, fail) => {
       const sc = document.createElement('script');
-      sc.src = 'extras/festa.js?v=' + FX_VER;
-      sc.onload = () => window.CZFesta ? ok(window.CZFesta.init(fxApi)) : fail();
+      sc.src = 'extras/' + file + '.js?v=' + FX_VER;
+      sc.onload = () => window[global] ? ok(window[global].init(fxApi)) : fail();
       sc.onerror = fail;
       document.head.appendChild(sc);
-    }).catch((e) => { extrasPromise = null; throw e; });
+    }).catch((e) => { delete fxModules[file]; throw e; });
   }
-  return extrasPromise;
+  return fxModules[file];
 }
+const loadExtras = () => loadModule('festa', 'CZFesta');
+const loadGames = () => loadModule('jogos', 'CZJogos');
 function addSysChat(text) {
   const m = { sys: true, text: cleanText(text), t: Date.now() };
   chatLog.push(m);
@@ -3654,6 +3662,12 @@ const fxApi = {
   toast, nameOf, cleanName, cleanText, getAudioCtx, sysChat: addSysChat,
   layer: () => $('fxLayer'),
   button: () => $('extrasBtn'),
+  gamesButton: () => $('gamesBtn'),
+  ver: FX_VER,
+  searchMusic: (q, n) => searchMusic(q, n),
+  fetchVideoInfo: (id) => fetchVideoInfo(id),
+  ensureYT: () => ensureYT(),
+  duckMusic: (on) => { musicDucked = !!on; applyMusicVolume(); },
   myId: () => (peer ? peer.id : 'local'),
   myName: () => myName,
   people: () => [{ id: peer ? peer.id : 'local', name: myName }].concat(Object.keys(remoteNames).filter(isPeerPresent).map((id) => ({ id, name: nameOf(id) }))),
@@ -3664,15 +3678,22 @@ const fxApi = {
 };
 function receiveFx(from, msg) {
   if (typeof msg.k !== 'string') return;
-  try { if (JSON.stringify(msg).length > 1500) return; } catch (e) { return; }
+  const game = msg.k === 'g';
+  try { if (JSON.stringify(msg).length > (game ? 8000 : 1500)) return; } catch (e) { return; }
   if (isHost) {
     const now = Date.now();
-    if (now - (fxSeen[from] || 0) < 200) return;
-    fxSeen[from] = now;
+    const key = (game ? 'g:' : '') + from;
+    if (now - (fxSeen[key] || 0) < (game ? 40 : 200)) return;
+    fxSeen[key] = now;
     relay(from, msg);
   }
-  loadExtras().then((x) => x.receive(from, msg)).catch(() => {});
+  (game ? loadGames() : loadExtras()).then((x) => x.receive(from, msg)).catch(() => {});
 }
+$('gamesBtn').onclick = () => {
+  const b = $('gamesBtn');
+  b.classList.add('loading');
+  loadGames().then((x) => x.toggle()).catch(() => toast('Não deu para carregar os jogos. Confira a internet.')).then(() => b.classList.remove('loading'));
+};
 $('extrasBtn').onclick = () => {
   const b = $('extrasBtn');
   b.classList.add('loading');
