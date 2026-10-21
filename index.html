@@ -554,6 +554,10 @@
   #chatForm { display: flex; gap: 6px; padding: 8px 12px 10px; border-top: 1px solid #2a2e37; }
   #chatInput { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 9px; border: 1px solid #2a2e37; background: #0f1115; color: #eaeaea; font-size: 13px; }
   #chatForm button { background: #5b8cff; color: #fff; padding: 8px 12px; font-size: 13px; }
+  .cmsg.sys { color: #c9b8ff; font-size: 12px; text-align: center; padding: 2px 0; }
+  .cmsg.sys .ctime { margin-left: 4px; }
+  #fxLayer { position: fixed; inset: 0; pointer-events: none; z-index: 1780; }
+  #fxLayer > * { pointer-events: auto; }
   #chatPanel .chint { padding: 0 12px 10px; color: #7b818a; font-size: 11px; }
   /* tela cheia: o chat fica translúcido por cima do vídeo */
   body.theater-open #chatPanel { background: rgba(12,13,17,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); bottom: 74px; }
@@ -742,6 +746,7 @@
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
   <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0Z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
 </svg>
 
@@ -776,7 +781,7 @@
   <div id="controls">
     <div class="cgroup"><button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></span><span class="cb-lbl">Mic</span></button><button id="screenBtn" class="ctrl-btn" title="Compartilhar tela"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-screen"/></svg></span><span class="cb-lbl">Tela</span></button><button id="swapScreenBtn" class="ctrl-btn" title="Trocar o que você está compartilhando (outra tela, janela ou aba)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg></span><span class="cb-lbl">Trocar</span></button><button id="audioShareBtn" class="ctrl-btn" title="Compartilhar só o áudio (Spotify, YouTube, jogo), sem mostrar a tela"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg></span><span class="cb-lbl">Áudio</span></button><button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg></span><span class="cb-lbl">Música</span></button></div>
     <span class="cdiv"></span>
-    <div class="cgroup"><button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span id="chatBadge"></span></span><span class="cb-lbl">Chat</span></button><button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg></span><span class="cb-lbl">Reações</span></button></div>
+    <div class="cgroup"><button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span id="chatBadge"></span></span><span class="cb-lbl">Chat</span></button><button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg></span><span class="cb-lbl">Reações</span></button><button id="extrasBtn" class="ctrl-btn" title="Extras: sons, roleta, dado, moeda e enquete" aria-haspopup="dialog" aria-expanded="false"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-sparkles"/></svg></span><span class="cb-lbl">Extras</span></button></div>
     <span class="cdiv"></span>
     <div class="cgroup"><button id="fsBtn" class="ctrl-btn" title="Tela cheia (F)"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-maximize"/></svg></span><span class="cb-lbl">Tela cheia</span></button><button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos"><span class="cb-ic"><svg class="ic" aria-hidden="true"><use href="#i-sliders"/></svg></span><span class="cb-lbl">Ajustes</span></button></div>
     <span class="cdiv"></span>
@@ -785,6 +790,7 @@
   <button id="nowPlaying" title="Abrir a música da sala"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg><span id="nowPlayingText"></span></button>
   <div id="reactBar" aria-label="Reações"></div>
   <div id="reactLayer"></div>
+  <div id="fxLayer"></div>
   <div id="shortcutHint" style="text-align:center;font-size:11px;color:#6b7280;padding-bottom:10px;">Atalho: tecla <b>M</b> muta/desmuta</div>
 </div>
 
@@ -1604,6 +1610,8 @@ function handleData(fromId, msg) {
     if (viaHost) receiveChatHistory(msg);
   } else if (msg.type === 'react') {
     if (isHost || viaHost) receiveReaction(from, msg);
+  } else if (msg.type === 'fx') {
+    if (isHost || viaHost) receiveFx(from, msg);
   }
 }
 
@@ -1963,7 +1971,18 @@ async function setVideoOnCalls(track) {
 
 // Sistema/aba → entra no MESMO destino de áudio do microfone (continua sendo uma única faixa de áudio)
 let screenAudioSrc = null, screenAudioGain = null;
+// Som do computador inteiro = tudo que sai das caixas, inclusive a voz de quem está na call tocando aqui.
+// restrictOwnAudio pede ao navegador para tirar o som desta aba da captura; sem isso a pessoa se ouve de volta.
+const SCREEN_AUDIO = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, restrictOwnAudio: true };
+// Navegador/app que não conseguiu tirar o som da call (ex.: app de PC, que pega o som do Windows inteiro):
+// liga o cancelamento de eco, que usa o som da call como referência e apaga a voz dos outros da captura.
+async function guardOwnAudio(track) {
+  const st = track.getSettings ? track.getSettings() : {};
+  if (st.restrictOwnAudio === true) return;
+  try { await track.applyConstraints({ echoCancellation: true, noiseSuppression: false, autoGainControl: false }); } catch (e) {}
+}
 function connectScreenAudio(track) {
+  guardOwnAudio(track);
   disconnectScreenAudio();
   ensureAudioGraph();
   const ctx = getAudioCtx();
@@ -1984,7 +2003,7 @@ function screenConstraints() {
   if (res) { const w = Math.round(res * 16 / 9); video.width = { ideal: w, max: w }; video.height = { ideal: res, max: res }; }
   const opts = { video, audio: false, surfaceSwitching: 'include', selfBrowserSurface: 'exclude' };
   if (prefs.screenAudio) {
-    opts.audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, restrictOwnAudio: true };
+    opts.audio = Object.assign({}, SCREEN_AUDIO);
     opts.systemAudio = 'include';
   }
   return opts;
@@ -2856,7 +2875,7 @@ function layoutTheater() {
 
 // Na tela cheia, o chat, as reações e os avisos vão para dentro do tile: assim giram junto com o vídeo
 // no celular. O painel de música fica de fora (mover o player do YouTube faria ele recarregar).
-const THEATER_OVERLAYS = ['reactBar', 'reactLayer', 'notices', 'toast', 'chatPanel'];
+const THEATER_OVERLAYS = ['reactBar', 'reactLayer', 'fxLayer', 'notices', 'toast', 'chatPanel'];
 let overlayHome = [];
 function moveOverlays(tile) {
   if (tile) {
@@ -3259,7 +3278,15 @@ function renderChatBadge() {
 function renderChatLine(m) {
   const log = $('chatLog');
   const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-  const d = document.createElement('div'); d.className = 'cmsg' + (m.me ? ' me' : '');
+  const d = document.createElement('div'); d.className = 'cmsg' + (m.me ? ' me' : '') + (m.sys ? ' sys' : '');
+  if (m.sys) {
+    const time = document.createElement('span'); time.className = 'ctime'; time.textContent = fmtClock(m.t);
+    d.append(m.text, time);
+    m.el = d; log.appendChild(d);
+    while (log.children.length > CHAT_MAX) log.firstChild.remove();
+    if (atEnd) log.scrollTop = log.scrollHeight;
+    return;
+  }
   const who = document.createElement('span'); who.className = 'cwho'; who.textContent = m.me ? 'Você' : m.name;
   const time = document.createElement('span'); time.className = 'ctime'; time.textContent = fmtClock(m.t);
   const text = document.createElement('div'); text.className = 'ctext'; text.textContent = m.text;
@@ -3288,7 +3315,7 @@ function receiveChat(from, msg) {
 }
 function chatHistoryPayload() {
   const now = Date.now();
-  return { type: 'chat-history', items: chatLog.filter(m => now - m.t < CHAT_TTL).slice(-CHAT_HISTORY).map(m => ({ name: m.me ? myName : m.name, text: m.text, t: m.t })) };
+  return { type: 'chat-history', items: chatLog.filter(m => !m.sys && now - m.t < CHAT_TTL).slice(-CHAT_HISTORY).map(m => ({ name: m.me ? myName : m.name, text: m.text, t: m.t })) };
 }
 // Quem acabou de entrar recebe as últimas mensagens; quem já tinha (troca de anfitrião) ignora, pra não duplicar
 function receiveChatHistory(msg) {
@@ -3377,8 +3404,67 @@ $('chatForm').onsubmit = (e) => {
   const text = cleanText($('chatInput').value);
   if (!text) return;
   $('chatInput').value = '';
+  const cmd = /^\/(\S+)\s*([\s\S]*)$/.exec(text);
+  if (cmd && FX_COMMANDS.includes(cmd[1].toLowerCase())) {
+    loadExtras().then((x) => x.command(cmd[1].toLowerCase(), cmd[2].trim())).catch(() => toast('Não deu para carregar os extras. Confira a internet.'));
+    return;
+  }
   addChat(myName, text, true);
   sendRoom({ type: 'chat', text });
+};
+
+// ================= extras (sons, roleta, dado, moeda, enquete) =================
+// Tudo isso mora em extras/festa.js, que só é baixado quando alguém usa: quem só conversa não carrega nada a mais.
+const FX_VER = '1';
+const FX_COMMANDS = ['ajuda', 'dado', 'moeda', 'roleta', 'enquete', 'som'];
+const fxSeen = {};   // anfitrião: peerId -> último extra repassado (segura quem clica sem parar)
+let extrasPromise = null;
+function loadExtras() {
+  if (!extrasPromise) {
+    extrasPromise = new Promise((ok, fail) => {
+      const sc = document.createElement('script');
+      sc.src = 'extras/festa.js?v=' + FX_VER;
+      sc.onload = () => window.CZFesta ? ok(window.CZFesta.init(fxApi)) : fail();
+      sc.onerror = fail;
+      document.head.appendChild(sc);
+    }).catch((e) => { extrasPromise = null; throw e; });
+  }
+  return extrasPromise;
+}
+function addSysChat(text) {
+  const m = { sys: true, text: cleanText(text), t: Date.now() };
+  chatLog.push(m);
+  if (chatLog.length > CHAT_MAX) chatLog.shift();
+  renderChatLine(m);
+}
+const fxApi = {
+  send: (m) => sendRoom(Object.assign({}, m, { type: 'fx' })),
+  toast, nameOf, cleanName, cleanText, getAudioCtx, sysChat: addSysChat,
+  layer: () => $('fxLayer'),
+  button: () => $('extrasBtn'),
+  myId: () => (peer ? peer.id : 'local'),
+  myName: () => myName,
+  people: () => [{ id: peer ? peer.id : 'local', name: myName }].concat(Object.keys(remoteNames).filter(isPeerPresent).map((id) => ({ id, name: nameOf(id) }))),
+  closeOthers: () => {
+    if (!$('musicPanel').classList.contains('closed')) toggleMusicPanel(false);
+    if (window.innerWidth < 700 && !(chatDocked && !theater) && chatOpen()) toggleChat(false);
+  },
+};
+function receiveFx(from, msg) {
+  if (typeof msg.k !== 'string') return;
+  try { if (JSON.stringify(msg).length > 1500) return; } catch (e) { return; }
+  if (isHost) {
+    const now = Date.now();
+    if (now - (fxSeen[from] || 0) < 200) return;
+    fxSeen[from] = now;
+    relay(from, msg);
+  }
+  loadExtras().then((x) => x.receive(from, msg)).catch(() => {});
+}
+$('extrasBtn').onclick = () => {
+  const b = $('extrasBtn');
+  b.classList.add('loading');
+  loadExtras().then((x) => x.toggle()).catch(() => toast('Não deu para carregar os extras. Confira a internet.')).then(() => b.classList.remove('loading'));
 };
 
 // Mouse parado por 2,5 s: some com as reações, os botões da tela cheia e o cursor
@@ -3540,8 +3626,11 @@ async function toggleAudioShare() {
   if (audioShareStream) { stopAudioShare(); return; }
   if (sharingScreen) { toast('Você já está compartilhando a tela. O som dela vai junto se você marcou "Compartilhar áudio".'); return; }
   let s;
-  try { s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
-  catch (e) { return; }
+  try { s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: Object.assign({}, SCREEN_AUDIO), systemAudio: 'include', selfBrowserSurface: 'exclude' }); }
+  catch (e) {
+    if (e && (e.name === 'NotAllowedError' || e.name === 'AbortError')) return;   // usuário cancelou
+    try { s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }); } catch (e2) { return; }   // navegador não aceitou as opções
+  }
   const at = s.getAudioTracks()[0];
   s.getVideoTracks().forEach((t) => t.stop());
   if (!at) { toast('Faltou marcar "Compartilhar áudio" na janela. Tente de novo.'); return; }
