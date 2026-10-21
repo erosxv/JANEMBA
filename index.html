@@ -625,6 +625,17 @@
     #controls .cdiv:last-of-type { margin: 0 3px; }
     #topbar .roomMeta #netBadge { display: none !important; }
   }
+  /* celular com Cinema ou Roda escolhidos à mão: telas uma embaixo da outra, pessoas em cartões pequenos embaixo */
+  @media (max-width: 700px) {
+    body.v-cinema #grid.has-stage, body.v-roda #grid.has-stage { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 10px; padding: 10px; overflow-y: auto; }
+    body.v-cinema #grid.has-stage .tile.focus, body.v-roda #grid.has-stage .tile.focus, body.v-roda #grid.multi-stage .tile.focus { flex: 0 0 100%; max-width: 100%; height: auto; min-height: 0; max-height: none; aspect-ratio: 16 / 9; align-self: auto; }
+    body.v-cinema #grid.has-stage .tile:not(.focus), body.v-roda #grid.has-stage .tile:not(.focus) { --card-w: calc(33.333% - 7px); --card-h: 88px; --av: 34px; --av-gap: 20px; margin-bottom: 0; }
+    body.v-cinema #grid.has-stage .tile:not(.focus) .tag .st, body.v-roda #grid.has-stage .tile:not(.focus) .tag .st { display: none; }
+    #grid .tile.focus .screen-badge, #grid .tile.focus .state-badges { display: none !important; }
+    body.v-cinema #grid.has-stage { padding-bottom: 84px; }   /* espaço para a cápsula flutuante */
+  }
+  /* cápsula flutuante do Cinema centralizada sem translate: assim ela usa a largura toda antes de quebrar linha */
+  body.v-cinema #controls { left: 0; right: 0; transform: none; margin: 0 auto; width: fit-content; max-width: calc(100% - 24px); }
 </style>
 </head>
 <body>
