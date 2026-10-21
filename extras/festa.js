@@ -5,11 +5,10 @@
   'use strict';
 
   const CSS = `
-  .fx-panel { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(360px, calc(100vw - 24px)); max-height: calc(100dvh - 130px); overflow-y: auto; padding: 10px; border-radius: 14px; border: 1px solid #2a2e37; background: #1a1d24; box-shadow: 0 12px 32px rgba(0,0,0,.45); color: #eaeaea; font-size: 13px; animation: fxIn .14s ease-out; }
+  .fx-panel { position: fixed; top: 60px; right: 12px; width: min(360px, calc(100vw - 24px)); max-height: calc(100dvh - 130px); overflow-y: auto; padding: 10px; border-radius: 14px; border: 1px solid #2a2e37; background: #1a1d24; box-shadow: 0 12px 32px rgba(0,0,0,.45); color: #eaeaea; font-size: 13px; animation: fxIn .14s ease-out; }
   .fx-panel[hidden] { display: none; }
-  body.v-cinema .fx-panel { bottom: 104px; }
-  body.theater-open .fx-panel { bottom: 74px; background: rgba(20,22,28,.94); }
-  @keyframes fxIn { from { opacity: 0; transform: translate(-50%, 6px); } }
+  body.theater-open .fx-panel { background: rgba(20,22,28,.94); }
+  @keyframes fxIn { from { opacity: 0; transform: translateY(-6px); } }
   .fx-head { display: flex; align-items: center; gap: 6px; padding: 0 2px 8px; color: #9aa0a6; }
   .fx-head b { flex: 1; color: #eaeaea; font-size: 14px; font-weight: 600; }
   .fx-head button { background: none; color: #9aa0a6; padding: 2px 6px; font-size: 16px; line-height: 1; }
@@ -236,8 +235,18 @@
       const open = typeof force === 'boolean' ? force : panel.hidden;
       if (open) { api.closeOthers(); home(); }
       panel.hidden = !open;
+      if (open) place();
       const b = api.button(); b.classList.toggle('active', open); b.setAttribute('aria-expanded', String(open));
     }
+    // abre logo abaixo do botão ✨ (no topo); se o botão não estiver à vista (tela cheia), fica no canto de cima
+    function place() {
+      const r = api.button().getBoundingClientRect();
+      if (!r.width) { panel.style.left = ''; panel.style.right = '12px'; panel.style.top = '60px'; return; }
+      const w = panel.offsetWidth;
+      const left = Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w));
+      panel.style.left = left + 'px'; panel.style.right = 'auto'; panel.style.top = Math.round(r.bottom + 8) + 'px';
+    }
+    window.addEventListener('resize', () => { if (!panel.hidden) place(); });
     document.addEventListener('pointerdown', (e) => {
       if (!panel.hidden && !panel.contains(e.target) && !api.button().contains(e.target)) toggle(false);
     });
