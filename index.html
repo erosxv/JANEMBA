@@ -340,6 +340,12 @@
   #musicAddForm { display: flex; gap: 6px; }
   #musicUrl { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 9px; border: 1px solid #2a2e37; background: #0f1115; color: #eaeaea; font-size: 13px; }
   #musicAddForm button { background: #2a2e37; color: #eaeaea; padding: 8px 10px; font-size: 13px; }
+  #musicResults { list-style: none; display: flex; flex-direction: column; gap: 2px; padding: 4px; border-radius: 10px; border: 1px solid #2a2e37; background: #0f1115; }
+  #musicResults[hidden] { display: none; }
+  #musicResults button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; padding: 6px 8px; border-radius: 8px; background: none; color: #eaeaea; font-size: 12.5px; font-weight: 500; text-align: left; }
+  #musicResults button:hover, #musicResults button:focus-visible { background: #22252d; opacity: 1; outline: none; }
+  #musicResults button small { color: #7b818a; font-size: 11px; font-weight: 400; }
+  #musicResults .mr-msg { padding: 6px 8px; color: #7b818a; font-size: 12px; }
   #musicQueue { list-style: none; display: flex; flex-direction: column; gap: 2px; }
   #musicQueue li { display: flex; align-items: center; gap: 6px; padding: 5px 6px; border-radius: 8px; }
   #musicQueue li.cur { background: #22252d; }
@@ -818,7 +824,8 @@
       <label title="Volume da música só para você"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg><input type="range" id="musicVol" min="0" max="100"></label>
     </div>
     <button id="musicUnlock" style="display:none"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Clique para ouvir a música aqui</button>
-    <form id="musicAddForm"><input id="musicUrl" type="text" placeholder="Link do YouTube ou YouTube Music" autocomplete="off"><button type="submit">Adicionar</button></form>
+    <form id="musicAddForm"><input id="musicUrl" type="text" placeholder="Nome da música ou link do YouTube" autocomplete="off" enterkeyhint="search"><button type="submit">Buscar</button></form>
+    <ol id="musicResults" hidden></ol>
     <ol id="musicQueue"></ol>
     <div class="hint">Cada pessoa ouve pelo próprio navegador; a sala só sincroniza a fila e o tempo. Use fones para a música não vazar pelo seu microfone. O volume acima vale só para você.</div>
   </div>
@@ -3017,6 +3024,74 @@ async function fetchVideoInfo(id) {
   return { title: '' };
 }
 
+// ---- jukebox: achar a música pelo nome ----
+// 1º a busca oficial do YouTube (chave travada para o site do CallZinha; ~100 buscas por dia de graça).
+// Se a chave faltar, der erro ou a cota do dia acabar, tenta espelhos públicos do YouTube (Piped/Invidious), que às vezes ficam fora do ar.
+const YT_KEY = '';
+const MIRRORS = [
+  { kind: 'piped', base: 'https://api.piped.private.coffee' },
+  { kind: 'inv', base: 'https://invidious.f5.si' },
+  { kind: 'inv', base: 'https://iv.melmac.space' },
+];
+function decodeEntities(t) { const d = document.createElement('textarea'); d.innerHTML = String(t || ''); return d.value; }
+async function fetchJson(url, ms) {
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), ms || 5000);
+  try { const r = await fetch(url, { signal: ctl.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  finally { clearTimeout(timer); }
+}
+async function searchOfficial(q, n) {
+  const d = await fetchJson('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoCategoryId=10&maxResults=' + n + '&q=' + encodeURIComponent(q) + '&key=' + YT_KEY);
+  return (d.items || []).map((it) => ({ id: it.id && it.id.videoId, title: cleanTitle(decodeEntities(it.snippet && it.snippet.title)), by: cleanTitle(decodeEntities(it.snippet && it.snippet.channelTitle)), ok: true }));
+}
+async function searchMirror(m, q, n) {
+  if (m.kind === 'piped') {
+    const d = await fetchJson(m.base + '/search?filter=music_songs&q=' + encodeURIComponent(q));
+    return (d.items || []).filter((it) => it.type === 'stream').slice(0, n).map((it) => ({ id: parseYouTubeId('https://www.youtube.com' + it.url), title: cleanTitle(it.title), by: cleanTitle(it.uploaderName) }));
+  }
+  const d = await fetchJson(m.base + '/api/v1/search?type=video&q=' + encodeURIComponent(q));
+  return (Array.isArray(d) ? d : []).filter((it) => it.type === 'video').slice(0, n).map((it) => ({ id: it.videoId, title: cleanTitle(it.title), by: cleanTitle(it.author) }));
+}
+async function searchMusic(q, n) {
+  n = n || 5;
+  if (YT_KEY) { try { const r = (await searchOfficial(q, n)).filter((x) => x.id); if (r.length) return r; } catch (e) {} }
+  for (const m of MIRRORS) {
+    try { const r = (await searchMirror(m, q, n)).filter((x) => /^[A-Za-z0-9_-]{11}$/.test(x.id || '')); if (r.length) return r; } catch (e) {}
+  }
+  return null;   // null = nenhuma busca respondeu; [] = buscou e não achou
+}
+// Coloca na fila o 1º resultado que pode tocar fora do YouTube
+async function queueSearch(q) {
+  const id = parseYouTubeId(q);
+  ensureYT();
+  if (id) {
+    const info = await fetchVideoInfo(id);
+    if (info.blocked) { toast('Esse vídeo não permite tocar fora do YouTube. Tente outro upload da mesma música.'); return false; }
+    musicCommand({ cmd: 'add', id, title: info.title });
+    toast('🎵 Adicionada: ' + (info.title || id));
+    return true;
+  }
+  toast('🔎 Procurando "' + q + '"…');
+  const res = await searchMusic(q, 5);
+  if (res === null) { toast('A busca de músicas está fora do ar agora. Cole o link do YouTube.'); return false; }
+  for (const r of res) {
+    const info = r.ok ? { title: r.title } : await fetchVideoInfo(r.id);
+    if (info.blocked) continue;
+    musicCommand({ cmd: 'add', id: r.id, title: r.title || info.title });
+    toast('🎵 Adicionada: ' + (r.title || r.id));
+    return true;
+  }
+  toast('Não achei "' + q + '". Tente com o nome do artista também.');
+  return false;
+}
+async function addResult(r) {
+  ensureYT();
+  const info = r.ok ? { title: r.title } : await fetchVideoInfo(r.id);
+  if (info.blocked) { toast('Essa não pode tocar fora do YouTube. Escolha outra da lista.'); return; }
+  musicCommand({ cmd: 'add', id: r.id, title: r.title || info.title });
+  toast('🎵 Adicionada: ' + (r.title || r.id));
+  $('musicResults').hidden = true;
+}
+
 // ---- comandos: convidado pede ao anfitrião; o anfitrião aplica e manda o estado novo para todos ----
 function musicCommand(cmd) {
   if (!peer) return;
@@ -3218,15 +3293,25 @@ $('musicVol').value = String(prefs.musicVol);
 $('musicVol').oninput = (e) => { prefs.musicVol = Number(e.target.value); savePrefs(); applyMusicVolume(); };
 $('musicAddForm').onsubmit = async (e) => {
   e.preventDefault();
-  const id = parseYouTubeId($('musicUrl').value);
-  if (!id) { toast('Cole um link de vídeo do YouTube (youtube.com/watch?v=… ou youtu.be/…).'); return; }
-  $('musicUrl').value = '';
-  ensureYT();
-  const info = await fetchVideoInfo(id);
-  if (info.blocked) { toast('Esse vídeo não permite tocar fora do YouTube. Tente outro upload da mesma música.'); return; }
-  musicCommand({ cmd: 'add', id, title: info.title });
-  toast('🎵 Adicionada: ' + (info.title || id));
+  const q = cleanTitle($('musicUrl').value);
+  if (!q) return;
+  const list = $('musicResults');
+  if (parseYouTubeId(q)) { $('musicUrl').value = ''; list.hidden = true; queueSearch(q); return; }
+  const msg = (t) => { const li = document.createElement('li'); li.className = 'mr-msg'; li.textContent = t; list.replaceChildren(li); list.hidden = false; };
+  msg('Procurando…');
+  const res = await searchMusic(q, 5);
+  if (res === null) { msg('A busca está fora do ar agora. Cole o link do YouTube.'); return; }
+  if (!res.length) { msg('Nada encontrado. Tente com o nome do artista também.'); return; }
+  list.replaceChildren(...res.map((r) => {
+    const li = document.createElement('li'), b = document.createElement('button'), t = document.createElement('span'), by = document.createElement('small');
+    b.type = 'button'; t.textContent = r.title || r.id; by.textContent = r.by || '';
+    b.append(t, by); b.title = 'Tocar para a sala';
+    b.onclick = () => { $('musicUrl').value = ''; addResult(r); };
+    li.appendChild(b); return li;
+  }));
+  list.hidden = false;
 };
+$('musicUrl').addEventListener('input', () => { if (!$('musicUrl').value) $('musicResults').hidden = true; });
 
 setInterval(() => {
   if (!music.queue.length) return;
@@ -3405,7 +3490,14 @@ $('chatForm').onsubmit = (e) => {
   if (!text) return;
   $('chatInput').value = '';
   const cmd = /^\/(\S+)\s*([\s\S]*)$/.exec(text);
-  if (cmd && FX_COMMANDS.includes(cmd[1].toLowerCase())) {
+  const verb = cmd ? cmd[1].toLowerCase() : '';
+  if (verb === 'play' || verb === 'tocar') {
+    if (!cmd[2].trim()) { toggleMusicPanel(true); return; }
+    queueSearch(cmd[2].trim()).then((ok) => { if (ok) addSysChat('🎵 Você pediu: ' + cmd[2].trim()); });
+    return;
+  }
+  if (verb === 'pular' || verb === 'skip') { if (musicTrack()) { musicCommand({ cmd: 'next' }); toast('⏭ Pulando a música'); } else toast('Nada tocando agora'); return; }
+  if (cmd && FX_COMMANDS.includes(verb)) {
     loadExtras().then((x) => x.command(cmd[1].toLowerCase(), cmd[2].trim())).catch(() => toast('Não deu para carregar os extras. Confira a internet.'));
     return;
   }
@@ -3415,7 +3507,7 @@ $('chatForm').onsubmit = (e) => {
 
 // ================= extras (sons, roleta, dado, moeda, enquete) =================
 // Tudo isso mora em extras/festa.js, que só é baixado quando alguém usa: quem só conversa não carrega nada a mais.
-const FX_VER = '1';
+const FX_VER = '2';
 const FX_COMMANDS = ['ajuda', 'dado', 'moeda', 'roleta', 'enquete', 'som'];
 const fxSeen = {};   // anfitrião: peerId -> último extra repassado (segura quem clica sem parar)
 let extrasPromise = null;

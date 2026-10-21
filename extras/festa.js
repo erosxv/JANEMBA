@@ -226,7 +226,7 @@
     }
     function help() {
       panel.replaceChildren(head('❔ Comandos do chat', true));
-      [['/dado', 'rola um dado (ou /dado 20)'], ['/moeda', 'cara ou coroa'], ['/roleta', 'sorteia alguém da sala'],
+      [['/play work', 'toca uma música pelo nome'], ['/pular', 'pula a música atual'], ['/dado', 'rola um dado (ou /dado 20)'], ['/moeda', 'cara ou coroa'], ['/roleta', 'sorteia alguém da sala'],
        ['/roleta pizza, sushi', 'sorteia entre opções'], ['/enquete Pergunta? A | B', 'abre uma votação'], ['/som aplausos', 'toca um som para todos']]
         .forEach(([c, d]) => { const r = el('div', 'fx-row'); r.style.marginTop = '6px'; r.append(el('code', '', c), el('span', '', d)); r.firstChild.style.color = '#c9b8ff'; panel.append(r); });
       const h = el('div', 'fx-hint', 'Sons: ' + SOUNDS.map((s) => s.id).join(', '));
