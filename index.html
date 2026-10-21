@@ -592,9 +592,13 @@ $('joinBtn').onclick = joinCall;
 
 const RTC_CONFIG = {
   iceServers: [
+    // Provedores diferentes de propósito: em roteador com duas operadoras (balanceamento de carga)
+    // cada um pode sair por um link, e assim os dois IPs públicos viram candidatos.
+    // Mais de 4 servidores deixa a coleta de candidatos mais lenta no Firefox.
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: 'stun:global.stun.twilio.com:3478' },
+    { urls: 'stun:stun.nextcloud.com:443' },
     // TURN: ajuda MUITO quem está no 4G/5G ou em rede restrita. Preencha com os dados do seu provedor:
     // { urls: 'turn:SEU-SERVIDOR:443?transport=tcp', username: 'USUARIO', credential: 'SENHA' },
   ]
@@ -693,7 +697,10 @@ function joinAsGuest(attempt) {
     try { p.destroy(); } catch (e) {}
     nextTry(attempt, why);
   }
-  p.on('error', (e) => fail(e.type));
+  p.on('error', (e) => {
+    if (p._relink) p._relink.error(e);
+    else fail(e.type);
+  });
   p.on('open', () => {
     const conn = p.connect(hostId, { reliable: true });
     conns[hostId] = conn;
@@ -708,10 +715,70 @@ function joinAsGuest(attempt) {
       sendMyState();
       callPeer(hostId, remoteNames[hostId]);
       keepAlive(p);
+      startHostWatch(p);
     });
-    conn.on('data', (msg) => handleData(hostId, msg));
-    conn.on('close', () => { if (ok && peer === p) onHostLost(); });
+    wireHostConn(p, conn, () => ok);
   });
+}
+
+function wireHostConn(p, conn, isJoined) {
+  conn.on('data', (msg) => { if (conns[hostId()] === conn) { lastFromHost = Date.now(); handleData(hostId(), msg); } });
+  conn.on('close', () => { if (isJoined() && peer === p && conns[hostId()] === conn) relinkHost(p); });
+}
+
+// Canal de dados com o anfitrião caiu. Antes de desmontar a sala inteira, tenta reabrir o canal com o
+// MESMO anfitrião: se ele ainda está lá (foi só uma oscilação), as chamadas de áudio continuam intactas.
+// Só se ele sumiu de verdade é que todo mundo refaz a entrada (onHostLost).
+function relinkHost(p) {
+  if (p._relink || peer !== p || p.destroyed) return;
+  toast("Conexão com o anfitrião oscilou, reconectando...");
+  let tries = 0, conn = null, timer = null;
+  const giveUp = () => { clearTimeout(timer); p._relink = null; if (peer === p) onHostLost(); };
+  const attempt = () => {
+    clearTimeout(timer);
+    if (peer !== p || p.destroyed) { p._relink = null; return; }
+    if (++tries > 3) { giveUp(); return; }
+    if (p.disconnected) { try { p.reconnect(); } catch (e) {} }
+    if (conn) { try { conn.close(); } catch (e) {} }
+    const c = conn = p.connect(hostId(), { reliable: true });
+    timer = setTimeout(attempt, 5000);
+    c.on('open', () => {
+      // só a tentativa atual vale; uma antiga que abriu atrasada é fechada para o anfitrião não ficar com dois canais
+      if (!p._relink || peer !== p || c !== conn) { try { c.close(); } catch (e) {} return; }
+      clearTimeout(timer); p._relink = null;
+      conns[hostId()] = c; lastFromHost = Date.now();
+      wireHostConn(p, c, () => true);
+      c.send({ type: 'hello', name: myName });
+      sendMyState();
+      if (!calls[hostId()]) callPeer(hostId(), remoteNames[hostId()]);
+      toast("Reconectado ao anfitrião");
+    });
+  };
+  p._relink = {
+    // o servidor diz que o ID do anfitrião não existe mais: ele saiu, não adianta insistir
+    error: (e) => { if (e && e.type === 'peer-unavailable') giveUp(); }
+  };
+  attempt();
+}
+
+// Áudio com essa pessoa ainda passando? (aba em segundo plano pode atrasar o batimento sem a pessoa ter caído)
+function mediaAlive(pid) {
+  const pc = calls[pid] && calls[pid].peerConnection;
+  return !!pc && (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed');
+}
+
+// Batimento com o anfitrião: o navegador pode levar 30 s ou mais para perceber um canal morto
+let lastFromHost = 0;
+const HOST_SILENCE_MS = 15000;
+function startHostWatch(p) {
+  lastFromHost = Date.now();
+  const iv = setInterval(() => {
+    if (peer !== p || p.destroyed || isHost) { clearInterval(iv); return; }
+    const conn = conns[hostId()];
+    if (p._relink || !conn) return;
+    safeSend(conn, { type: 'ping' });
+    if (Date.now() - lastFromHost > HOST_SILENCE_MS && !mediaAlive(hostId())) { try { conn.close(); } catch (e) {} relinkHost(p); }
+  }, 4000);
 }
 
 // Reconecta ao servidor de sinalização sem perder o ID (insiste a cada 3 s enquanto estiver desconectado)
@@ -726,14 +793,20 @@ function keepAlive(p) {
   p.on('open', () => { clearTimeout(t); });
   p._czTick = tick;
 }
-window.addEventListener('online', () => {
-  if (peer && !peer.destroyed && peer._czTick) peer._czTick();
-  // a rede voltou: se alguma chamada ficou "pendurada", religa
+// A rede voltou, mudou (Wi-Fi <-> 4G) ou a página voltou do segundo plano: reconecta ao servidor
+// e religa as chamadas que ficaram "penduradas"
+function recheckConnection() {
+  if (!peer || peer.destroyed) return;
+  if (peer._czTick) peer._czTick();
   Object.keys(calls).forEach((id) => {
     const pc = calls[id] && calls[id].peerConnection;
     if (pc && (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed')) { try { calls[id].close(); } catch (e) {} }
   });
-});
+  if (!isHost && !peer._relink && conns[hostId()] && Date.now() - lastFromHost > 6000) safeSend(conns[hostId()], { type: 'ping' });
+}
+window.addEventListener('online', recheckConnection);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') recheckConnection(); });
+if (navigator.connection && navigator.connection.addEventListener) navigator.connection.addEventListener('change', recheckConnection);
 
 // Zera o que é "estado da sala" (ao entrar ou quando o anfitrião muda)
 function resetRoomState() {
@@ -741,6 +814,7 @@ function resetRoomState() {
   for (const id of Object.keys(peerStates)) delete peerStates[id];
   for (const id of Object.keys(redialTimers)) { clearTimeout(redialTimers[id]); delete redialTimers[id]; }
   for (const id of Object.keys(redialAttempts)) delete redialAttempts[id];
+  for (const id of Object.keys(leaveTimers)) { clearTimeout(leaveTimers[id]); delete leaveTimers[id]; }
 }
 
 // Anfitrião caiu: todo mundo refaz a entrada; o primeiro vira o novo anfitrião, os outros entram nele.
@@ -900,20 +974,39 @@ function removeRemoteTile(peerId) {
 }
 
 // ---- HOST: aceita conexões de dados dos convidados, mantém lista, distribui ----
+const leaveTimers = {};   // anfitrião: peerId -> espera antes de dar o convidado como "saiu"
+const GUEST_SILENCE_MS = 20000;
 function listenForGuests() {
+  const p = peer;
+  // convidado que parou de mandar o batimento: fecha o canal (cai na espera abaixo)
+  const iv = setInterval(() => {
+    if (peer !== p || p.destroyed) { clearInterval(iv); return; }
+    for (const id in hostConns) {
+      const c = hostConns[id];
+      if (c.open && Date.now() - (c._seen || 0) > GUEST_SILENCE_MS && !mediaAlive(id)) { try { c.close(); } catch (e) {} }
+    }
+  }, 5000);
   peer.on('connection', (conn) => {
     conn.on('open', () => {
+      clearTimeout(leaveTimers[conn.peer]); delete leaveTimers[conn.peer];
+      conn._seen = Date.now();
       hostConns[conn.peer] = conn;
       conn.send({ type: 'welcome', name: myName, state: myState() });
       if (music.queue.length) safeSend(conn, musicPayload());
     });
-    conn.on('data', (msg) => handleData(conn.peer, msg));
+    conn.on('data', (msg) => { conn._seen = Date.now(); if (hostConns[conn.peer] === conn) handleData(conn.peer, msg); });
     conn.on('close', () => {
       if (hostConns[conn.peer] !== conn) return;
-      delete hostConns[conn.peer];
-      announcePresence(conn.peer, false);
-      broadcastRoster();
-      dropPeer(conn.peer);
+      // espera alguns segundos: se foi só uma oscilação, o convidado reabre o canal e ninguém percebe
+      clearTimeout(leaveTimers[conn.peer]);
+      leaveTimers[conn.peer] = setTimeout(() => {
+        delete leaveTimers[conn.peer];
+        if (hostConns[conn.peer] !== conn) return;
+        delete hostConns[conn.peer];
+        announcePresence(conn.peer, false);
+        broadcastRoster();
+        dropPeer(conn.peer);
+      }, 8000);
     });
   });
   peer.on('call', (call) => acceptCall(call));
@@ -978,6 +1071,11 @@ function handleData(fromId, msg) {
   // Só o anfitrião pode dizer "esta mensagem é de outra pessoa" (campo from)
   const viaHost = !isHost && fromId === hostId();
   const from = (viaHost && typeof msg.from === 'string') ? msg.from : fromId;
+  if (msg.type === 'ping') {
+    if (isHost) safeSend(hostConns[fromId], { type: 'pong' });
+    return;
+  }
+  if (msg.type === 'pong') return;
   if (msg.type === 'hello') {
     const first = !(from in remoteNames);
     remoteNames[from] = cleanName(msg.name) || 'Participante';
@@ -1188,9 +1286,11 @@ function setReconnecting(pid, on) {
 function scheduleRedial(pid) {
   if (redialTimers[pid]) return;
   const n = (redialAttempts[pid] = (redialAttempts[pid] || 0) + 1);
-  if (n > 6) { setReconnecting(pid, true); notify('⚠️ Não consegui religar com ' + nameOf(pid)); return; }
-  // quem é o "chamador" religa logo; o outro lado espera e só tenta por conta própria se o chamador não aparecer
-  const delay = iAmCaller(pid) ? Math.min(1000 * n, 6000) + Math.random() * 600 : 9000 + Math.random() * 2000;
+  // quem é o "chamador" religa logo; o outro lado espera e só tenta por conta própria se o chamador não aparecer.
+  // Depois de 6 tentativas não desiste: segue tentando a cada ~30 s enquanto a pessoa estiver na sala.
+  if (n === 7) { setReconnecting(pid, true); notify('⚠️ Não consegui religar com ' + nameOf(pid) + ', sigo tentando'); }
+  const delay = n > 6 ? 25000 + Math.random() * 10000
+    : iAmCaller(pid) ? Math.min(1000 * n, 6000) + Math.random() * 600 : 9000 + Math.random() * 2000;
   redialTimers[pid] = setTimeout(() => {
     delete redialTimers[pid];
     if (!peer || peer.destroyed || calls[pid] || !isPeerPresent(pid)) return;
