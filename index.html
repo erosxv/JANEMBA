@@ -384,6 +384,7 @@
   #chatForm { display: flex; gap: 6px; padding: 8px 12px 10px; border-top: 1px solid #2a2e37; }
   #chatInput { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 9px; border: 1px solid #2a2e37; background: #0f1115; color: #eaeaea; font-size: 13px; }
   #chatForm button { background: #5b8cff; color: #fff; padding: 8px 12px; font-size: 13px; }
+  #chatPanel .chint { padding: 0 12px 10px; color: #7b818a; font-size: 11px; }
   /* tela cheia: o chat fica translúcido por cima do vídeo */
   body.theater-open #chatPanel { background: rgba(12,13,17,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); bottom: 74px; }
   /* reações: botões quase transparentes, somem quando o mouse fica parado */
@@ -510,6 +511,7 @@
   <div class="chead"><span><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg>Chat da sala</span><button id="chatClose" title="Fechar (Esc)"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
   <div id="chatLog" aria-live="polite"></div>
   <form id="chatForm"><input id="chatInput" type="text" maxlength="500" placeholder="Escreva uma mensagem" autocomplete="off"><button type="submit">Enviar</button></form>
+  <div class="chint">As mensagens somem 30 minutos depois de enviadas.</div>
 </div>
 
 <div id="settingsOverlay"></div>
@@ -2706,6 +2708,7 @@ setInterval(() => { if (isHost && music.playing) broadcastMusic(); }, 5000);
 // ================= chat da sala e reações =================
 // Mesmo caminho das outras mensagens: o convidado manda para o anfitrião, que repassa para os outros com o campo from.
 const CHAT_MAX = 200, CHAT_HISTORY = 50;
+const CHAT_TTL = 30 * 60 * 1000;   // cada mensagem some 30 minutos depois de enviada
 const REACTIONS = ['😂', '😭', '😐', '😱', '😍', '👏'];
 let chatLog = [], chatUnread = 0, lastReactAt = 0;
 const reactSeen = {};   // anfitrião: peerId -> última reação (segura quem clica sem parar)
@@ -2744,6 +2747,7 @@ function renderChatLine(m) {
   const time = document.createElement('span'); time.className = 'ctime'; time.textContent = fmtClock(m.t);
   const text = document.createElement('div'); text.className = 'ctext'; text.textContent = m.text;
   d.append(who, time, text);
+  m.el = d;
   log.appendChild(d);
   while (log.children.length > CHAT_MAX) log.firstChild.remove();
   if (atEnd || m.me) log.scrollTop = log.scrollHeight;
@@ -2766,7 +2770,8 @@ function receiveChat(from, msg) {
   if (isHost) relay(from, { type: 'chat', text });
 }
 function chatHistoryPayload() {
-  return { type: 'chat-history', items: chatLog.slice(-CHAT_HISTORY).map(m => ({ name: m.me ? myName : m.name, text: m.text, t: m.t })) };
+  const now = Date.now();
+  return { type: 'chat-history', items: chatLog.filter(m => now - m.t < CHAT_TTL).slice(-CHAT_HISTORY).map(m => ({ name: m.me ? myName : m.name, text: m.text, t: m.t })) };
 }
 // Quem acabou de entrar recebe as últimas mensagens; quem já tinha (troca de anfitrião) ignora, pra não duplicar
 function receiveChatHistory(msg) {
@@ -2774,10 +2779,24 @@ function receiveChatHistory(msg) {
   msg.items.slice(-CHAT_HISTORY).forEach((it) => {
     const text = cleanText(it && it.text);
     if (!text) return;
-    const m = { name: cleanName(it.name) || 'Participante', text, me: false, t: Number(it.t) || Date.now() };
+    const now = Date.now();
+    const t = Math.min(Number(it.t) || now, now);   // relógio de outra pessoa pode estar adiantado
+    if (now - t >= CHAT_TTL) return;
+    const m = { name: cleanName(it.name) || 'Participante', text, me: false, t };
     chatLog.push(m); renderChatLine(m);
   });
 }
+
+// Apaga as mensagens com mais de 30 minutos. Cada pessoa apaga a própria cópia, então some para todo mundo
+// (e quem entra depois não recebe nada mais velho que isso)
+function pruneChat() {
+  const now = Date.now();
+  while (chatLog.length && now - chatLog[0].t >= CHAT_TTL) {
+    const m = chatLog.shift();
+    if (m.el) m.el.remove();
+  }
+}
+setInterval(pruneChat, 30000);
 
 function sendReaction(i) {
   if (!REACTIONS[i] || !peer) return;
