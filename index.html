@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>CallZinha - Chamada em grupo</title>
-<meta name="theme-color" content="#14161c">
+<meta name="theme-color" content="#080A0B">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -636,6 +640,37 @@
   }
   /* cápsula flutuante do Cinema centralizada sem translate: assim ela usa a largura toda antes de quebrar linha */
   body.v-cinema #controls { left: 0; right: 0; transform: none; margin: 0 auto; width: fit-content; max-width: calc(100% - 24px); }
+  /* ================= identidade CallZinha (balão com a bandeira das Bahamas) =================
+     Paleta da marca só na tela de entrada; dentro da sala aparece só a logo no canto. */
+  :root { --cz-bg: #080A0B; --cz-surface: #12171A; --cz-surface-2: #182024; --cz-line: #222c30;
+          --cz-text: #EEF3F4; --cz-muted: #8FA0A6; --cz-aqua: #00BDBD; --cz-aqua-hi: #22D3D3; --cz-gold: #F5C000; --cz-ink: #05080A; }
+  /* logo */
+  .brand-mark { flex: none; }
+  .wordmark { font-family: Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 900; letter-spacing: -0.02em; color: var(--cz-aqua); }
+  .wordmark b { font-weight: 900; color: var(--cz-gold); }
+  .brandMini { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 8px; font-size: 17px; }
+  .brandMini .brand-mark { width: 30px; height: 30px; }
+  .brandMini .wordmark { display: none; }   /* na sala, só o balão: mais minimalista */
+  /* tela de entrada com a paleta da marca */
+  #joinScreen { background: var(--cz-bg); color: var(--cz-text); }
+  #joinScreen, #joinScreen button, #joinScreen input { font-family: Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  #joinScreen h1.brand { display: flex; align-items: center; gap: 12px; font-size: 40px; margin-bottom: 6px; }
+  #joinScreen h1.brand .brand-mark { width: 64px; height: 64px; }
+  #joinScreen p.sub { color: var(--cz-muted); font-weight: 600; }
+  #joinScreen .card { background: var(--cz-surface); border-color: var(--cz-line); border-radius: 20px; }
+  #joinScreen .card label { color: var(--cz-muted); font-weight: 700; }
+  #joinScreen .card input { background: var(--cz-bg); border-color: var(--cz-line); border-radius: 12px; color: var(--cz-text); }
+  #joinScreen .card input:focus { outline: 2px solid var(--cz-aqua); border-color: transparent; }
+  #joinScreen button { border-radius: 12px; font-weight: 800; }
+  #joinScreen .btn-primary { background: var(--cz-aqua); color: var(--cz-ink); }
+  #joinScreen .btn-primary:hover { background: var(--cz-aqua-hi); opacity: 1; }
+  #joinScreen .btn-ghost { background: var(--cz-surface-2); color: var(--cz-text); border: 1px solid var(--cz-line); }
+  #joinScreen #status { color: var(--cz-muted); }
+  @media (max-width: 700px) {
+    .brandMini { position: static; transform: none; }
+    #joinScreen h1.brand { font-size: 34px; }
+    #joinScreen h1.brand .brand-mark { width: 54px; height: 54px; }
+  }
 </style>
 </head>
 <body>
@@ -676,7 +711,7 @@
 </svg>
 
 <div id="joinScreen">
-  <h1><svg class="ic" aria-hidden="true"><use href="#i-logo"/></svg>CallZinha</h1>
+  <h1 class="brand"><svg class="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><defs><clipPath id="czClipJoin"><rect x="6" y="6" width="52" height="44" rx="16"/></clipPath></defs><path d="M15 46 L11 59 L30 49 Z" fill="#00BDBD" stroke="#00BDBD" stroke-width="4" stroke-linejoin="round"/><g clip-path="url(#czClipJoin)"><rect x="6" y="6" width="52" height="15" fill="#00BDBD"/><rect x="6" y="20.67" width="52" height="14.66" fill="#F5C000"/><rect x="6" y="35.33" width="52" height="15" fill="#00BDBD"/><path d="M6 6 L33 28 L6 50 Z" fill="#05080A"/></g><rect x="6" y="6" width="52" height="44" rx="16" stroke="#3a474c" stroke-width="1.2"/></svg><span class="wordmark">Call<b>Zinha</b></span></h1>
   <p class="sub">Chamada em grupo por áudio, com tela compartilhada</p>
   <div class="card">
     <label for="nameInput">Seu nome</label>
@@ -693,6 +728,7 @@
 
 <div id="callScreen">
   <div id="topbar">
+    <div class="brandMini" title="CallZinha"><svg class="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><defs><clipPath id="czClipTop"><rect x="6" y="6" width="52" height="44" rx="16"/></clipPath></defs><path d="M15 46 L11 59 L30 49 Z" fill="#00BDBD" stroke="#00BDBD" stroke-width="4" stroke-linejoin="round"/><g clip-path="url(#czClipTop)"><rect x="6" y="6" width="52" height="15" fill="#00BDBD"/><rect x="6" y="20.67" width="52" height="14.66" fill="#F5C000"/><rect x="6" y="35.33" width="52" height="15" fill="#00BDBD"/><path d="M6 6 L33 28 L6 50 Z" fill="#05080A"/></g><rect x="6" y="6" width="52" height="44" rx="16" stroke="#3a474c" stroke-width="1.2"/></svg><span class="wordmark">Call<b>Zinha</b></span></div>
     <div class="roomInfo"><span class="roomChip"><span>Sala</span><b id="roomLabel"></b></span><span class="roomMeta"><span id="netDot" class="cdot"></span><span><span id="peerCount">1</span> na chamada</span><button id="netBadge" title="Qualidade da conexão: clique para ver os detalhes"></button></span></div>
     <div class="topActions">
       <div class="vwrap"><button id="visualBtn" class="top-btn" title="Visual da sala (só muda a sua tela)" aria-haspopup="menu" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="txt">Automático</span></button><div id="visualMenu" class="vmenu" role="menu" aria-label="Visual da sala" hidden><button class="vitem" data-v="cinema" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-cinema"/></svg><span class="vtx"><b>Cinema</b><small>A tela compartilhada em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="roda" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-roda"/></svg><span class="vtx"><b>Roda</b><small>As pessoas em primeiro lugar</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><button class="vitem" data-v="live" role="menuitemradio"><svg class="ic" aria-hidden="true"><use href="#i-live"/></svg><span class="vtx"><b>Ao vivo</b><small>Vídeo em cima, chat embaixo</small></span><svg class="ic vcheck" aria-hidden="true"><use href="#i-check"/></svg></button><div class="vsep"></div><label class="vauto"><span>Escolher sozinho<small>Celular: Ao vivo · computador: Cinema ou Roda</small></span><input type="checkbox" id="visualAuto" role="switch"></label></div></div>

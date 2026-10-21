@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" fill="none" role="img" aria-label="CallZinha">
+  <defs><clipPath id="bub"><rect x="6" y="6" width="52" height="44" rx="16"/></clipPath></defs>
+  <path d="M15 46 L11 59 L30 49 Z" fill="#00BDBD" stroke="#00BDBD" stroke-width="4" stroke-linejoin="round"/>
+  <g clip-path="url(#bub)">
+    <rect x="6" y="6" width="52" height="15" fill="#00BDBD"/>
+    <rect x="6" y="20.67" width="52" height="14.66" fill="#F5C000"/>
+    <rect x="6" y="35.33" width="52" height="15" fill="#00BDBD"/>
+    <path d="M6 6 L33 28 L6 50 Z" fill="#05080A"/>
+  </g>
+  <rect x="6" y="6" width="52" height="44" rx="16" stroke="#3a474c" stroke-width="1.2"/>
+</svg>
