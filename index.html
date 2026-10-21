@@ -383,9 +383,10 @@
   /* Cinema: palco grande, pessoas numa coluna fina, barra de botões flutuante que some com o mouse parado */
   body.v-cinema #callScreen { height: 100dvh; }
   body.v-cinema #grid { min-height: 0; }
-  body.v-cinema #grid.has-stage { display: grid; grid-template-columns: minmax(0, 1fr) 168px; grid-template-rows: repeat(8, min-content) minmax(0, 1fr); gap: 2px 12px; padding: 12px; overflow: hidden; }
-  body.v-cinema #grid.has-stage .tile.focus { grid-column: 1; grid-row: 1 / -1; height: 100%; }
-  body.v-cinema #grid.has-stage .tile:not(.focus) { grid-column: 2; --card-w: 100%; --card-h: 104px; --av: 40px; --av-gap: 22px; margin-bottom: 8px; }
+  body.v-cinema #grid.has-stage { display: grid; grid-template-columns: repeat(var(--stages, 1), minmax(0, 1fr)) 168px; grid-template-rows: repeat(8, min-content) minmax(0, 1fr); gap: 2px 12px; padding: 12px; overflow: hidden; }
+  body.v-cinema #grid.has-stage .tile.focus { grid-row: 1 / -1; height: 100%; }   /* várias telas: uma coluna para cada */
+  body.v-cinema #grid.multi-stage .tile.focus { height: auto; max-height: 100%; aspect-ratio: 16 / 9; align-self: center; }
+  body.v-cinema #grid.has-stage .tile:not(.focus) { grid-column: -2 / -1; --card-w: 100%; --card-h: 104px; --av: 40px; --av-gap: 22px; margin-bottom: 8px; }
   body.v-cinema #grid.has-stage .tile:not(.focus) .tag { font-size: 11px; }
   body.v-cinema #grid.has-stage .tile:not(.focus) .sbadge, body.v-live #grid.has-stage .tile:not(.focus) .sbadge { font-size: 10px; white-space: nowrap; padding: 1px 5px; }
   body.v-cinema #controls { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); padding: 8px 10px; border: 1px solid #2a2e37; border-radius: 22px; background: rgba(20,22,28,.94); z-index: 900; transition: opacity .4s ease; }
@@ -394,6 +395,7 @@
   /* Roda: bolinhas grandes; se alguém compartilhar a tela, ela aparece em cima */
   body.v-roda #grid.has-stage { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 6px 28px; }
   body.v-roda #grid.has-stage .tile.focus { flex: 0 0 100%; height: calc(100dvh - 330px); min-height: 240px; }
+  body.v-roda #grid.multi-stage .tile.focus { flex: 1 1 calc(50% - 14px); max-width: calc(50% - 14px); min-width: 0; }   /* duas ou mais telas: lado a lado */
   body.v-roda #grid.has-stage .tile:not(.focus) { --card-w: 180px; --card-h: 124px; --av: 46px; }
   /* Ao vivo (celular): vídeo em cima, pessoas numa linha, chat sempre aberto embaixo */
   body.v-live #callScreen { height: 100dvh; min-height: 0; }
@@ -2324,13 +2326,14 @@ let pinnedId = null;
 const VISUALS = ['auto', 'cinema', 'roda', 'live'];
 const VISUAL_LABEL = { auto: 'Automático', cinema: 'Cinema', roda: 'Roda', live: 'Ao vivo' };
 const phoneQuery = window.matchMedia ? window.matchMedia('(max-width: 700px)') : { matches: false };
-function focusTileId() {
-  if (pinnedId && document.getElementById(pinnedId)) return pinnedId;
-  const sharer = Object.keys(peerStates).find((pid) => peerStates[pid].screen && document.getElementById('tile-' + pid));
-  if (sharer) return 'tile-' + sharer;
-  if (sharingScreen) return 'tile-local';
-  return null;
+// Telas no palco: quem foi fixado (duplo clique) ou TODAS as telas compartilhadas, a dos outros primeiro
+function stageTileIds() {
+  if (pinnedId && document.getElementById(pinnedId)) return [pinnedId];
+  const ids = Object.keys(peerStates).filter((pid) => peerStates[pid].screen && document.getElementById('tile-' + pid)).map((pid) => 'tile-' + pid);
+  if (sharingScreen) ids.push('tile-local');
+  return ids;
 }
+function focusTileId() { return stageTileIds()[0] || null; }
 function chosenVisual() { return VISUALS.includes(prefs.visual) ? prefs.visual : 'auto'; }
 function currentVisual(fid) {
   const v = chosenVisual();
@@ -2341,11 +2344,14 @@ function currentVisual(fid) {
 function applyLayout() {
   const grid = $('grid');
   if (!grid) return;
-  const fid = focusTileId();   // tela compartilhada (ou quem foi fixado) vira o palco
+  const stages = stageTileIds();   // telas compartilhadas (ou quem foi fixado) viram o palco
+  const fid = stages[0] || null;
   const v = currentVisual(fid);
   ['cinema', 'roda', 'live'].forEach((n) => document.body.classList.toggle('v-' + n, n === v));
   grid.classList.toggle('has-stage', !!fid);
-  grid.querySelectorAll('.tile').forEach((t) => { t.classList.toggle('focus', !!fid && t.id === fid); t.classList.toggle('pinned', t.id === pinnedId); });
+  grid.classList.toggle('multi-stage', stages.length > 1);
+  grid.style.setProperty('--stages', String(Math.max(1, stages.length)));
+  grid.querySelectorAll('.tile').forEach((t) => { t.classList.toggle('focus', stages.includes(t.id)); t.classList.toggle('pinned', t.id === pinnedId); });
   placeChat(v === 'live');
   placeReactBar();
   const auto = chosenVisual() === 'auto';
