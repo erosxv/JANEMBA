@@ -137,6 +137,7 @@
     color: #9aa0a6;
   }
   .tile.avatar-tile { }
+  .tile video.has-video ~ .avatar { display: none; } /* com vídeo, a bolinha do nome não espreme a imagem */
   .tile .tag {
     position: absolute;
     left: 10px;
@@ -342,6 +343,42 @@
   #musicQueue .qt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c9ccd1; }
   #musicQueue .qb { color: #7b818a; font-size: 11px; white-space: nowrap; }
   #musicQueue button { background: none; color: #9aa0a6; padding: 2px 5px; font-size: 12px; }
+  /* ================= chat, reações e tela cheia ================= */
+  .ctrl-btn { position: relative; }
+  #chatBadge { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #d64545; color: #fff; font-size: 11px; line-height: 18px; display: none; }
+  #chatPanel { position: fixed; right: 12px; bottom: 96px; width: min(340px, calc(100vw - 24px)); height: min(460px, calc(100dvh - 120px)); display: flex; flex-direction: column; background: rgba(20,22,28,.97); border: 1px solid #2a2e37; border-radius: 12px; z-index: 1760; font-size: 13px; }
+  #chatPanel.closed { display: none; }
+  #chatPanel .chead { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #2a2e37; color: #9aa0a6; }
+  #chatPanel .chead button { background: none; color: #9aa0a6; padding: 2px 6px; font-size: 14px; }
+  #chatLog { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 7px; }
+  #chatLog:empty::before { content: 'Nenhuma mensagem ainda. Escreva abaixo; todo mundo da sala vê.'; color: #7b818a; font-size: 12px; margin: auto; text-align: center; }
+  .cmsg .cwho { color: #8fb0ff; font-weight: 600; }
+  .cmsg.me .cwho { color: #5fd38d; }
+  .cmsg .ctime { color: #7b818a; font-size: 10px; margin-left: 6px; }
+  .cmsg .ctext { color: #eaeaea; white-space: pre-wrap; overflow-wrap: anywhere; }
+  #chatForm { display: flex; gap: 6px; padding: 8px 12px 10px; border-top: 1px solid #2a2e37; }
+  #chatInput { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 9px; border: 1px solid #2a2e37; background: #0f1115; color: #eaeaea; font-size: 13px; }
+  #chatForm button { background: #5b8cff; color: #fff; padding: 8px 12px; font-size: 13px; }
+  /* tela cheia: o chat fica translúcido por cima do vídeo */
+  body.theater-open #chatPanel { background: rgba(12,13,17,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); bottom: 74px; }
+  /* reações: botões quase transparentes, somem quando o mouse fica parado */
+  #reactBar { position: fixed; left: 10px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 1600; opacity: .4; transition: opacity .4s; }
+  #reactBar:hover { opacity: 1; }
+  #reactBar button { width: 42px; height: 42px; border-radius: 50%; background: rgba(0,0,0,.28); font-size: 22px; padding: 0; }
+  body.idle #reactBar { opacity: 0; pointer-events: none; }
+  body.react-off #reactBar { display: none; }
+  #reactLayer { position: fixed; inset: 0; pointer-events: none; z-index: 1650; overflow: hidden; }
+  #reactLayer .fly { position: absolute; bottom: 60px; display: flex; flex-direction: column; align-items: center; animation: reactFly 3.2s ease-out forwards; }
+  #reactLayer .fly span { font-size: 44px; line-height: 1; }
+  #reactLayer .fly small { font-size: 11px; color: #fff; background: rgba(0,0,0,.45); padding: 1px 6px; border-radius: 6px; margin-top: 2px; }
+  @keyframes reactFly { 0% { transform: translate(0, 0) scale(.6); opacity: 0; } 12% { transform: translate(0, -30px) scale(1.1); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(var(--dx, 0), -62vh) scale(1); opacity: 0; } }
+  /* tela cheia limpa: sem bordas nem etiquetas; os botões somem junto com o cursor */
+  .tile.theater .volbar, .tile.theater .screen-badge, .tile.theater .state-badges { display: none; }
+  .tile.theater .tag, .tile.theater .vol-control, .tile.theater .tile-actions { transition: opacity .4s; }
+  body.idle .tile.theater .tag, body.idle .tile.theater .vol-control, body.idle .tile.theater .tile-actions { opacity: 0; pointer-events: none; }
+  body.theater-open.idle, body.theater-open.idle * { cursor: none; }
+  .tile:not(.theater) .act-chat { display: none; }
+  @media (max-width: 420px) { #controls { gap: 6px; } .ctrl-btn { width: 42px; height: 42px; font-size: 18px; } #reactBar { left: 6px; } #reactBar button { width: 38px; height: 38px; font-size: 20px; } }
 </style>
 </head>
 <body>
@@ -377,9 +414,13 @@
     <button id="micBtn" class="ctrl-btn active" title="Mutar/desmutar (tecla M)">🎤</button>
     <button id="screenBtn" class="ctrl-btn" title="Compartilhar tela">🖥️</button>
     <button id="musicBtn" class="ctrl-btn" title="Música da sala (YouTube)">🎵</button>
+    <button id="chatBtn" class="ctrl-btn" title="Chat da sala (Enter)">💬<span id="chatBadge"></span></button>
+    <button id="reactBtn" class="ctrl-btn" title="Mostrar/esconder os botões de reação">😀</button>
     <button id="settingsBtn" class="ctrl-btn" title="Configurações de áudio, tela e atalhos">⚙️</button>
     <button id="leaveBtn" class="ctrl-btn leave" title="Sair">📵</button>
   </div>
+  <div id="reactBar" aria-label="Reações"></div>
+  <div id="reactLayer"></div>
   <div id="shortcutHint" style="text-align:center;font-size:11px;color:#6b7280;padding-bottom:10px;background:#14161c;">Atalho: tecla <b>M</b> muta/desmuta</div>
 </div>
 
@@ -410,6 +451,12 @@
     <ol id="musicQueue"></ol>
     <div class="hint">Cada pessoa ouve pelo próprio navegador; a sala só sincroniza a fila e o tempo. Use fones para a música não vazar pelo seu microfone. O volume acima vale só para você.</div>
   </div>
+</div>
+
+<div id="chatPanel" class="closed">
+  <div class="chead"><span>💬 Chat da sala</span><button id="chatClose" title="Fechar (Esc)">✕</button></div>
+  <div id="chatLog" aria-live="polite"></div>
+  <form id="chatForm"><input id="chatInput" type="text" maxlength="500" placeholder="Escreva uma mensagem" autocomplete="off"><button type="submit">Enviar</button></form>
 </div>
 
 <div id="settingsOverlay"></div>
@@ -542,7 +589,7 @@ const DEFAULT_PREFS = {
   noise: 'ai',            // 'ai' (RNNoise) | 'browser' | 'off'
   echo: true, agc: true, gain: 100, gateOn: false, gateThr: -50,
   res: 1080, fps: 30, screenMode: 'detail', screenAudio: false,
-  shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60
+  shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60, reactBar: true
 };
 function loadPrefs() {
   try { return Object.assign({}, DEFAULT_PREFS, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); }
@@ -948,8 +995,9 @@ function addRemoteTile(peerId, name) {
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(volControl);
   const actions = document.createElement('div');
   actions.className = 'tile-actions';
-  actions.innerHTML = '<button class="act act-full" title="Tela cheia">⛶</button><button class="act act-rotate" title="Girar tela">🔄</button><button class="act act-exit" title="Sair da tela cheia">✕</button>';
+  actions.innerHTML = '<button class="act act-full" title="Tela cheia">⛶</button><button class="act act-chat" title="Chat (Enter)">💬</button><button class="act act-rotate" title="Girar tela">🔄</button><button class="act act-exit" title="Sair da tela cheia">✕</button>';
   actions.querySelector('.act-full').onclick = () => enterTheater(tile);
+  actions.querySelector('.act-chat').onclick = () => toggleChat();
   actions.querySelector('.act-rotate').onclick = rotateTheater;
   actions.querySelector('.act-exit').onclick = exitTheater;
   tile.appendChild(actions);
@@ -993,6 +1041,7 @@ function listenForGuests() {
       hostConns[conn.peer] = conn;
       conn.send({ type: 'welcome', name: myName, state: myState() });
       if (music.queue.length) safeSend(conn, musicPayload());
+      if (chatLog.length) safeSend(conn, chatHistoryPayload());
     });
     conn.on('data', (msg) => { conn._seen = Date.now(); if (hostConns[conn.peer] === conn) handleData(conn.peer, msg); });
     conn.on('close', () => {
@@ -1114,6 +1163,12 @@ function handleData(fromId, msg) {
     if (viaHost) receiveMusic(msg);
   } else if (msg.type === 'music-cmd') {
     if (isHost) applyMusicCommand(msg, from);
+  } else if (msg.type === 'chat') {
+    if (isHost || viaHost) receiveChat(from, msg);
+  } else if (msg.type === 'chat-history') {
+    if (viaHost) receiveChatHistory(msg);
+  } else if (msg.type === 'react') {
+    if (isHost || viaHost) receiveReaction(from, msg);
   }
 }
 
@@ -1611,7 +1666,13 @@ document.addEventListener('keydown', (e) => {
   if (!e.repeat && e.code === sc.code && e.ctrlKey === sc.ctrl && e.altKey === sc.alt && e.shiftKey === sc.shift && e.metaKey === sc.meta) {
     e.preventDefault();
     $('micBtn').click();
+    return;
   }
+  if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+  if (e.key === 'Enter') { e.preventDefault(); toggleChat(true); return; }
+  if (e.code === 'KeyF') { toggleScreenFullscreen(); return; }
+  const n = Number(e.key);
+  if (n >= 1 && n <= REACTIONS.length) sendReaction(n - 1);
 });
 
 // ================= v10: motor de áudio do microfone =================
@@ -2263,10 +2324,13 @@ async function enterTheater(tile) {
   document.body.classList.add('theater-open');
   layoutTheater();
   let locked = false;
-  const fn = tile.requestFullscreen || tile.webkitRequestFullscreen;
+  // Tela cheia da página inteira (não só do vídeo): assim o chat, as reações e os avisos aparecem por cima.
+  // O tile já ocupa a janela toda pelo modo "theater".
+  const root = document.documentElement;
+  const fn = root.requestFullscreen || root.webkitRequestFullscreen;
   if (fn) {
     try {
-      await fn.call(tile);
+      await fn.call(root);
       if (theater) theater.fs = true;
       if (screen.orientation && screen.orientation.lock && video.videoWidth >= video.videoHeight) {
         await screen.orientation.lock('landscape'); // Android/Chrome: gira de verdade
@@ -2302,6 +2366,13 @@ function exitTheater() {
   document.body.classList.remove('theater-open');
   try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
   if (fsEl()) { try { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} }
+}
+
+// Tecla F: tela cheia na tela compartilhada (ou sai dela)
+function toggleScreenFullscreen() {
+  if (theater) { exitTheater(); return; }
+  const t = document.querySelector('#grid .tile.has-screen:not(#tile-local)');
+  if (t) enterTheater(t); else toast('Ninguém está compartilhando a tela agora.');
 }
 
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev =>
@@ -2539,7 +2610,7 @@ function renderMusicTime() {
 function toggleMusicPanel(force) {
   const open = typeof force === 'boolean' ? force : $('musicPanel').classList.contains('closed');
   $('musicPanel').classList.toggle('closed', !open);
-  if (open) ensureYT();
+  if (open) { ensureYT(); toggleChat(false); }
   renderMusic();
 }
 
@@ -2573,6 +2644,154 @@ setInterval(() => {
 }, 1000);
 // o anfitrião reenvia o relógio de tempos em tempos para corrigir quem atrasou
 setInterval(() => { if (isHost && music.playing) broadcastMusic(); }, 5000);
+
+// ================= chat da sala e reações =================
+// Mesmo caminho das outras mensagens: o convidado manda para o anfitrião, que repassa para os outros com o campo from.
+const CHAT_MAX = 200, CHAT_HISTORY = 50;
+const REACTIONS = ['😂', '😭', '😐', '😱', '😍', '👏'];
+let chatLog = [], chatUnread = 0, lastReactAt = 0;
+const reactSeen = {};   // anfitrião: peerId -> última reação (segura quem clica sem parar)
+
+function cleanText(t) { return String(t == null ? '' : t).replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, 500); }
+function fmtClock(t) { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+function sendRoom(msg) {
+  if (!peer) return;
+  if (isHost) { for (const id in hostConns) safeSend(hostConns[id], Object.assign({}, msg, { from: peer.id })); }
+  else safeSend(conns[hostId()], msg);
+}
+
+function chatOpen() { return !$('chatPanel').classList.contains('closed'); }
+function toggleChat(force) {
+  const open = typeof force === 'boolean' ? force : !chatOpen();
+  $('chatPanel').classList.toggle('closed', !open);
+  $('chatBtn').classList.toggle('active', open);
+  if (open) {
+    if (!$('musicPanel').classList.contains('closed')) toggleMusicPanel(false);
+    chatUnread = 0; renderChatBadge();
+    $('chatLog').scrollTop = $('chatLog').scrollHeight;
+    setTimeout(() => $('chatInput').focus(), 0);
+  } else if (document.activeElement === $('chatInput')) $('chatInput').blur();
+}
+function renderChatBadge() {
+  const b = $('chatBadge');
+  b.textContent = chatUnread > 9 ? '9+' : String(chatUnread);
+  b.style.display = chatUnread ? 'block' : 'none';
+}
+
+function renderChatLine(m) {
+  const log = $('chatLog');
+  const atEnd = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+  const d = document.createElement('div'); d.className = 'cmsg' + (m.me ? ' me' : '');
+  const who = document.createElement('span'); who.className = 'cwho'; who.textContent = m.me ? 'Você' : m.name;
+  const time = document.createElement('span'); time.className = 'ctime'; time.textContent = fmtClock(m.t);
+  const text = document.createElement('div'); text.className = 'ctext'; text.textContent = m.text;
+  d.append(who, time, text);
+  log.appendChild(d);
+  while (log.children.length > CHAT_MAX) log.firstChild.remove();
+  if (atEnd || m.me) log.scrollTop = log.scrollHeight;
+}
+function addChat(name, text, me, t) {
+  const m = { name, text, me, t: t || Date.now() };
+  chatLog.push(m);
+  if (chatLog.length > CHAT_MAX) chatLog.shift();
+  renderChatLine(m);
+  if (!me && !chatOpen()) {
+    chatUnread++; renderChatBadge();
+    notify('💬 ' + name + ': ' + (text.length > 90 ? text.slice(0, 90) + '…' : text), true);
+  }
+}
+
+function receiveChat(from, msg) {
+  const text = cleanText(msg.text);
+  if (!text) return;
+  addChat(nameOf(from), text, false);
+  if (isHost) relay(from, { type: 'chat', text });
+}
+function chatHistoryPayload() {
+  return { type: 'chat-history', items: chatLog.slice(-CHAT_HISTORY).map(m => ({ name: m.me ? myName : m.name, text: m.text, t: m.t })) };
+}
+// Quem acabou de entrar recebe as últimas mensagens; quem já tinha (troca de anfitrião) ignora, pra não duplicar
+function receiveChatHistory(msg) {
+  if (chatLog.length || !Array.isArray(msg.items)) return;
+  msg.items.slice(-CHAT_HISTORY).forEach((it) => {
+    const text = cleanText(it && it.text);
+    if (!text) return;
+    const m = { name: cleanName(it.name) || 'Participante', text, me: false, t: Number(it.t) || Date.now() };
+    chatLog.push(m); renderChatLine(m);
+  });
+}
+
+function sendReaction(i) {
+  if (!REACTIONS[i] || !peer) return;
+  const now = Date.now();
+  if (now - lastReactAt < 250) return;
+  lastReactAt = now;
+  showReaction(i, myName);
+  sendRoom({ type: 'react', i });
+}
+function receiveReaction(from, msg) {
+  if (!Number.isInteger(msg.i) || !REACTIONS[msg.i]) return;
+  if (isHost) {
+    const now = Date.now();
+    if (now - (reactSeen[from] || 0) < 150) return;
+    reactSeen[from] = now;
+    relay(from, { type: 'react', i: msg.i });
+  }
+  showReaction(msg.i, nameOf(from));
+}
+function showReaction(i, name) {
+  const layer = $('reactLayer');
+  if (layer.children.length >= 40) layer.firstChild.remove();
+  const f = document.createElement('div'); f.className = 'fly';
+  f.style.left = (8 + Math.random() * 80) + '%';
+  f.style.setProperty('--dx', Math.round(Math.random() * 80 - 40) + 'px');
+  const e = document.createElement('span'); e.textContent = REACTIONS[i];
+  const n = document.createElement('small'); n.textContent = name;
+  f.append(e, n);
+  layer.appendChild(f);
+  f.addEventListener('animationend', () => f.remove());
+}
+
+REACTIONS.forEach((em, i) => {
+  const b = document.createElement('button');
+  b.textContent = em; b.title = 'Reagir ' + em + ' (tecla ' + (i + 1) + ')';
+  b.onclick = () => sendReaction(i);
+  $('reactBar').appendChild(b);
+});
+function applyReactBar() {
+  document.body.classList.toggle('react-off', !prefs.reactBar);
+  $('reactBtn').classList.toggle('active', !!prefs.reactBar);
+}
+applyReactBar();
+$('reactBtn').onclick = () => {
+  prefs.reactBar = !prefs.reactBar; savePrefs(); applyReactBar();
+  toast(prefs.reactBar ? 'Botões de reação visíveis' : 'Botões de reação escondidos (teclas 1 a 6 continuam funcionando)');
+};
+
+$('chatBtn').onclick = () => toggleChat();
+$('chatClose').onclick = () => toggleChat(false);
+$('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); toggleChat(false); } });
+$('chatForm').onsubmit = (e) => {
+  e.preventDefault();
+  const text = cleanText($('chatInput').value);
+  if (!text) return;
+  $('chatInput').value = '';
+  addChat(myName, text, true);
+  sendRoom({ type: 'chat', text });
+};
+
+// Mouse parado por 2,5 s: some com as reações, os botões da tela cheia e o cursor
+let idleTimer = null;
+function wake() {
+  document.body.classList.remove('idle');
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    if (document.activeElement === $('chatInput') || document.querySelector('#reactBar:hover, #chatPanel:hover, #musicPanel:hover, .tile-actions:hover, .vol-control:hover')) { wake(); return; }
+    document.body.classList.add('idle');
+  }, 2500);
+}
+['mousemove', 'pointerdown', 'keydown', 'touchstart'].forEach((ev) => document.addEventListener(ev, wake, { passive: true }));
+wake();
 
 window.onbeforeunload = () => { if (peer) peer.destroy(); };
 window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // celular: libera o ID da sala mais rápido
