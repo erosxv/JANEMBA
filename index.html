@@ -233,6 +233,7 @@
   #joinScreen, #callScreen { min-height: 100dvh; }
   #topbar { flex-wrap: wrap; gap: 8px; }
   #toast { z-index: 2000; }
+  img.emoji { display: inline-block; width: 1.2em; height: 1.2em; margin: 0 .05em; vertical-align: -.22em; object-fit: contain; pointer-events: none; user-select: none; }
   #updateBar { position: fixed; left: 16px; right: 16px; margin: 0 auto; width: fit-content; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 2100;
     display: flex; align-items: center; gap: 12px; max-width: 440px; padding: 10px 10px 10px 16px;
     background: var(--cz-surface-2); color: var(--cz-text); border: 1px solid var(--cz-line); border-radius: 14px;
@@ -1001,6 +1002,60 @@
 
 <script>
 const $ = (id) => document.getElementById(id) || (window.czPipDoc ? window.czPipDoc.getElementById(id) : null);
+
+// ================= emojis com o desenho da Apple em qualquer aparelho =================
+// Todo emoji que aparece na tela (botões, avisos, chat, jogos) vira a imagem da Apple, buscada do CDN.
+// Sem internet, a imagem não carrega e o emoji volta a ser o do sistema.
+const APPLE_EMOJI = 'https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.1.2/img/apple/64/';
+const EMOJI_RE = /\p{RI}\p{RI}|(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}️)\p{EMod}?(?:‍(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}️?)\p{EMod}?)*/gu;
+const EMOJI_SKIP = /^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION|TITLE|CANVAS|svg)$/;
+const emojiFailed = new Set();
+function emojiImg(e) {
+  const code = [...e].map((c) => c.codePointAt(0).toString(16)).join('-');
+  const img = document.createElement('img');
+  img.className = 'emoji'; img.alt = e; img.draggable = false; img.decoding = 'async';
+  img.src = APPLE_EMOJI + code + '.png';
+  img.onerror = () => {
+    const plain = code.replace(/-fe0f/g, '');   // alguns arquivos não levam o seletor FE0F no nome
+    if (plain !== code && !img.dataset.retry) { img.dataset.retry = '1'; img.src = APPLE_EMOJI + plain + '.png'; return; }
+    emojiFailed.add(e);
+    img.replaceWith(document.createTextNode(e));
+  };
+  return img;
+}
+function emojifyText(node) {
+  const text = node.nodeValue;
+  if (!text || !node.parentNode) return;
+  EMOJI_RE.lastIndex = 0;
+  if (!EMOJI_RE.test(text)) return;
+  for (let el = node.parentNode; el && el.nodeType === 1; el = el.parentNode) {
+    if (EMOJI_SKIP.test(el.nodeName) || el.isContentEditable || el.hasAttribute('data-no-emoji')) return;
+  }
+  const frag = document.createDocumentFragment();
+  let last = 0, changed = false;
+  text.replace(EMOJI_RE, (e, at) => {
+    if (emojiFailed.has(e)) return e;
+    if (at > last) frag.appendChild(document.createTextNode(text.slice(last, at)));
+    frag.appendChild(emojiImg(e));
+    last = at + e.length; changed = true;
+    return e;
+  });
+  if (!changed) return;
+  if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+  node.parentNode.replaceChild(frag, node);
+}
+function emojify(root) {
+  if (root.nodeType === 3) return emojifyText(root);
+  if (root.nodeType !== 1 || EMOJI_SKIP.test(root.nodeName)) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const list = [];
+  for (let n = w.nextNode(); n; n = w.nextNode()) list.push(n);
+  list.forEach(emojifyText);
+}
+new MutationObserver((muts) => {
+  muts.forEach((m) => { if (m.type === 'characterData') emojifyText(m.target); else m.addedNodes.forEach(emojify); });
+}).observe(document.body, { childList: true, subtree: true, characterData: true });
+emojify(document.body);
 
 // ================= v10: configuração e preferências =================
 // Servidor de sinalização próprio (opcional). Ex.: window.CALLZINHA_PEER_OPTIONS = { host:'meu-servidor.com', port:443, path:'/', secure:true }
