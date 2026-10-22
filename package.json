@@ -1,7 +1,7 @@
 {
   "name": "callzinha",
   "productName": "CallZinha",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "description": "Chamada em grupo por áudio, com tela compartilhada",
   "author": "erosxv",
   "desktopName": "callzinha.desktop",
@@ -9,6 +9,7 @@
   "private": true,
   "main": "electron/main.js",
   "scripts": {
+    "test": "node scripts/teste-chamada.js",
     "build:web": "node scripts/build-web.js",
     "start": "npm run build:web && electron .",
     "dist:win": "npm run build:web && electron-builder --win",

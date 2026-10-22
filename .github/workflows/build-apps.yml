@@ -12,7 +12,18 @@ permissions:
   contents: write
 
 jobs:
+  # Antes de gerar qualquer app: duas pessoas entram numa sala de teste (Chrome com microfone falso) e o
+  # script confere versão, conexão, áudio, filtros de ruído e erros. Se falhar, nenhum app é gerado.
+  teste:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/teste-chamada.js
+
   desktop:
+    needs: teste
     strategy:
       matrix:
         include:
@@ -45,6 +56,7 @@ jobs:
         with: { files: '${{ matrix.files }}' }
 
   android:
+    needs: teste
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
