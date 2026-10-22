@@ -11,7 +11,7 @@
     { id: 'musica', file: 'jogo-musica', global: 'CZJogoMusica', em: '🎵', name: 'Adivinhe a música', sub: 'quem acerta primeiro', ready: true },
     { id: 'stop', file: 'jogo-stop', global: 'CZJogoStop', em: '🛑', name: 'Stop', sub: 'adedonha clássica', ready: true },
     { id: 'bomba', em: '💣', name: 'Bomba de sílabas', sub: 'em breve' },
-    { id: 'desenho', em: '✏️', name: 'Desenha e adivinha', sub: 'em breve' },
+    { id: 'desenho', file: 'jogo-desenho', global: 'CZJogoDesenho', em: '✏️', name: 'Desenha e adivinha', sub: 'estilo Gartic', ready: true },
     { id: 'truco', em: '🃏', name: 'Truco', sub: 'em breve' },
   ];
 
