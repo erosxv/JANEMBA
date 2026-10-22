@@ -1,0 +1,12 @@
+Filtro de ruído forte do CallZinha (DeepFilterNet3)
+
+df_bg.wasm.gz              WebAssembly do DeepFilterNet (libDF) compilado pelo pacote npm
+                           deepfilternet3-noise-filter 1.3.0 (MezonAI), comprimido com gzip.
+DeepFilterNet3_onnx.tar.gz modelo DeepFilterNet3 (Hendrik Schröter).
+dfn-worklet.js             cola própria do CallZinha que roda o filtro dentro do AudioWorklet.
+
+Licença: Apache-2.0 OU MIT (veja LICENSE-APACHE e LICENSE-MIT).
+Projeto original: https://github.com/Rikorose/DeepFilterNet
+
+Estes arquivos ficam só no site e não vão dentro dos apps: o app baixa na primeira vez
+que alguém escolhe "IA forte" nos Ajustes e guarda no cache do aparelho.

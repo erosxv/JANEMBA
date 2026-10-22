@@ -933,6 +933,7 @@
         <label for="setNoise">Supressão de ruído</label>
         <select id="setNoise">
           <option value="ai">IA (RNNoise) — forte, para teclado e ventilador</option>
+          <option value="dfn">IA forte (DeepFilterNet) — a mais limpa, usa mais processador</option>
           <option value="browser">Navegador — leve</option>
           <option value="off">Desligada</option>
         </select>
@@ -1069,10 +1070,14 @@ const NS_BASES = [
   'https://cdn.jsdelivr.net/npm/@sapphi-red/web-noise-suppressor@' + NS_VERSION + '/dist/',
   'https://unpkg.com/@sapphi-red/web-noise-suppressor@' + NS_VERSION + '/dist/'
 ];
+// Filtro forte (DeepFilterNet3): fica no site, fora dos apps; só baixa (~12 MB, uma vez) quando alguém escolhe
+const DFN_BASES = ['ia/dfn/', 'https://erosxv.github.io/JANEMBA/ia/dfn/'];
+const DFN_CACHE = 'cz-dfn-1';
+const DFN_LIM = 50;                       // atenuação máxima do ruído em dB (100 = sem limite; 50 tira bem e a voz fica natural)
 const PREF_KEY = 'callzinha.prefs.v1';
 const DEFAULT_PREFS = {
   name: '', micDevice: '', outDevice: '',
-  noise: 'ai',            // 'ai' (RNNoise) | 'browser' | 'off'
+  noise: 'ai',            // 'ai' (RNNoise) | 'dfn' (DeepFilterNet3) | 'browser' | 'off'
   echo: true, agc: true, gain: 100, gateOn: false, gateThr: -50,
   res: 1080, fps: 30, screenMode: 'detail', screenAudio: false,
   shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60, reactBar: true, visual: 'auto', sounds: true, avatar: ''
@@ -1158,9 +1163,9 @@ async function joinCall() {
   if (!roomId) { setStatus("Digite ou gere um código de sala."); joining = false; $('joinBtn').disabled = false; return; }
 
   ensureAudioGraph(); // faixa de áudio de saída fixa: o mic pode entrar/trocar depois sem derrubar as chamadas
-  if (prefs.noise === 'ai' && workletSupported()) {
+  if ((prefs.noise === 'ai' || prefs.noise === 'dfn') && workletSupported()) {
     setStatus("Preparando a supressão de ruído...");
-    await prepareNoise(6000);
+    await prepareNoise(6000, 5000);
   }
 
   setStatus("Pedindo acesso ao microfone...");
@@ -2022,7 +2027,7 @@ function setMicVolume(v, from) {
 function toggleMic() {
   if (!hasMic) { enableMic(); return; }
   micOn = !micOn;
-  applyMicGain();
+  applyMicGain(); syncDfnBypass();
   $('micBtn').classList.toggle('active', micOn);
   $('micBtn').classList.toggle('off', !micOn);
   setCtrlIcon('micBtn', micOn ? 'mic' : 'mic-off');
@@ -2287,11 +2292,12 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ================= v10: motor de áudio do microfone =================
-// mic (getUserMedia) → [RNNoise IA] → [portão de ruído] → micTap → ganho/mudo → destino fixo (vai pras chamadas)
+// mic (getUserMedia) → [RNNoise IA ou DeepFilterNet] → [portão de ruído] → micTap → ganho/mudo → destino fixo (vai pras chamadas)
 let outDest = null, micTap = null, micTapAnalyser = null;
-let micTrack = null, micSourceNode = null, rawAnalyser = null, rnnoiseNode = null, gateNode = null;
+let micTrack = null, micSourceNode = null, rawAnalyser = null, rnnoiseNode = null, dfnNode = null, gateNode = null;
 let rnnoiseAssets = null, rnnoisePromise = null, rnnoiseFailed = false;
-let rnnoiseModuleReady = null, gateModuleReady = null;
+let dfnAssets = null, dfnPromise = null, dfnFailed = false, dfnProgress = -1, dfnMem = 0, dfnGen = 0, dfnCacheOk = false;
+let rnnoiseModuleReady = null, dfnModuleReady = null, gateModuleReady = null;
 let micState = 'ok';          // 'ok' | 'lost' | 'nosignal'
 let chainLock = Promise.resolve();
 let monitorOn = false, monitorSrc = 'processed', monitorDest = null, monitorGain = null, monitorAudio = null;
@@ -2348,24 +2354,149 @@ function loadRnnoiseAssets() {
   return rnnoisePromise;
 }
 
-async function prepareNoise(timeoutMs) {
+// ---- Filtro forte (DeepFilterNet3) ----
+// Só existe na memória enquanto "IA forte" estiver escolhida. Os arquivos ficam guardados no cache do aparelho
+// (baixa uma vez só); trocar de modo solta o WebAssembly compilado e a instância do AudioWorklet.
+function dfnSupported() { return workletSupported() && !!window.DecompressionStream; }
+async function dfnRead(res, onBytes) {
+  if (!res.body || !res.body.getReader) { const b = await res.arrayBuffer(); onBytes(b.byteLength); return b; }
+  const rd = res.body.getReader(), parts = [];
+  let n = 0;
+  for (;;) {
+    const { done, value } = await rd.read();
+    if (done) break;
+    parts.push(value); n += value.length; onBytes(value.length);
+  }
+  const out = new Uint8Array(n);
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out.buffer;
+}
+async function dfnFetch(file, onBytes) {
+  let cache = null, lastErr;
+  try { cache = await caches.open(DFN_CACHE); dfnCacheOk = true; } catch (e) {}
+  for (const base of DFN_BASES) {
+    try {
+      const url = new URL(base + file, location.href).href;
+      let hit = null;
+      try { hit = cache && await cache.match(url); } catch (e) {}
+      if (hit) return await dfnRead(hit, onBytes);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const buf = await dfnRead(res, onBytes);
+      if (cache) cache.put(url, new Response(buf)).catch(() => {});
+      return buf;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('indisponível');
+}
+function loadDfnAssets() {
+  if (dfnAssets) return Promise.resolve(dfnAssets);
+  if (dfnPromise) return dfnPromise;
+  const gen = dfnGen, total = 4333875 + 7983136;
+  let got = 0;
+  dfnProgress = 0;
+  const tick = (b) => {
+    got += b;
+    const pc = Math.min(99, Math.floor(got * 100 / total));
+    if (pc !== dfnProgress && gen === dfnGen) { dfnProgress = pc; refreshNoiseHint(); }
+  };
+  const p = (async () => {
+    if (!dfnSupported()) throw new Error('sem suporte');
+    const [glue, gz, model] = await Promise.all([
+      dfnFetch('dfn-worklet.js', () => {}), dfnFetch('df_bg.wasm.gz', tick), dfnFetch('DeepFilterNet3_onnx.tar.gz', tick)
+    ]);
+    const wasmBuf = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    const module = await WebAssembly.compile(wasmBuf);
+    if (gen !== dfnGen) throw new Error('cancelado');   // trocaram de modo no meio do download
+    // Com cache no aparelho, o modelo (8 MB) não fica parado na memória: é relido do disco quando o filtro liga
+    dfnAssets = { js: new TextDecoder().decode(glue), module, model: dfnCacheOk ? null : model };
+    dfnProgress = 100; refreshNoiseHint();
+    return dfnAssets;
+  })();
+  dfnPromise = p;
+  p.catch(() => { if (dfnPromise === p) { dfnPromise = null; dfnProgress = -1; } });
+  return p;
+}
+function releaseDfn() {
+  dfnGen++; dfnAssets = null; dfnPromise = null; dfnFailed = false; dfnProgress = -1; dfnMem = 0;
+}
+
+function ensureDfnModule() {
+  if (!dfnModuleReady) dfnModuleReady = addWorkletSource(dfnAssets.js).catch((e) => { dfnModuleReady = null; throw e; });
+  return dfnModuleReady;
+}
+async function makeDfnNode(ctx) {
+  const assets = dfnAssets;
+  await ensureDfnModule();
+  const model = assets.model || await dfnFetch('DeepFilterNet3_onnx.tar.gz', () => {});
+  const node = new AudioWorkletNode(ctx, 'cz-dfn', {
+    processorOptions: { module: assets.module, model, lim: DFN_LIM, bypass: !micOn },
+    numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1], channelCount: 1, channelCountMode: 'explicit'
+  });
   try {
-    await Promise.race([loadRnnoiseAssets(), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), timeoutMs))]);
+    await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error('demorou')), 15000);
+      node.port.onmessage = (e) => {
+        const d = e.data || {};
+        if (d.ready) { clearTimeout(t); dfnMem = d.mem || 0; res(); }
+        else if (d.error) { clearTimeout(t); rej(new Error(d.error)); }
+      };
+      node.onprocessorerror = () => { clearTimeout(t); rej(new Error('erro no processador')); };
+    });
+  } catch (e) {
+    try { node.port.postMessage({ destroy: true }); } catch (_) {}
+    throw e;
+  }
+  node.port.onmessage = (e) => {
+    const d = e.data || {};
+    if (d.mem) dfnMem = d.mem;
+    if (d.error && node === dfnNode) {
+      console.warn('dfn', d.error);
+      dfnFailed = true; toast('O filtro forte parou; voltando para o filtro de IA normal.');
+      applyMicSettings();
+    }
+  };
+  node.onprocessorerror = null;
+  return node;
+}
+// No mudo a IA forte não roda: o processador só copia o som (o medidor de "falando no mudo" continua funcionando)
+function syncDfnBypass() {
+  if (dfnNode) { try { dfnNode.port.postMessage({ bypass: !micOn }); } catch (e) {} }
+}
+
+async function prepareNoise(timeoutMs, dfnWaitMs) {
+  const late = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
+  try {
+    await Promise.race([loadRnnoiseAssets(), late(timeoutMs)]);
     rnnoiseFailed = false;
   } catch (e) {
     rnnoiseFailed = true;
     // Se a internet só estava lenta, quando o filtro chegar ele entra sozinho
-    loadRnnoiseAssets().then(() => { rnnoiseFailed = false; if (hasMic && prefs.noise === 'ai') applyMicSettings(); }).catch(() => {});
+    loadRnnoiseAssets().then(() => { rnnoiseFailed = false; if (hasMic && (prefs.noise === 'ai' || (prefs.noise === 'dfn' && !dfnAssets))) applyMicSettings(); }).catch(() => {});
+  }
+  if (prefs.noise === 'dfn' && dfnSupported() && !dfnFailed) {
+    // Na primeira vez são ~12 MB: enquanto baixa, o RNNoise segura as pontas e o forte entra sozinho ao terminar
+    const job = loadDfnAssets();
+    try { await Promise.race([job, late(dfnWaitMs || 2500)]); }
+    catch (e) {
+      if (e.message !== 'timeout') dfnFailed = true;
+      else job.then(() => { if (hasMic && prefs.noise === 'dfn' && !dfnNode) applyMicSettings(); })
+        .catch((err) => { if (err.message !== 'cancelado' && prefs.noise === 'dfn') { dfnFailed = true; refreshNoiseHint(); } });
+    }
   }
   refreshNoiseHint();
 }
 
 // Modo realmente em uso (pode diferir do escolhido se o navegador não suporta ou o filtro não carregou)
 function effectiveNoise() {
-  if (prefs.noise === 'ai') {
-    const rateOk = !audioCtx || audioCtx.sampleRate === 48000; // o RNNoise só funciona em 48 kHz
-    return (workletSupported() && rateOk && rnnoiseAssets && !rnnoiseFailed) ? 'ai' : 'browser';
+  const rateOk = !audioCtx || audioCtx.sampleRate === 48000; // RNNoise e DeepFilterNet só funcionam em 48 kHz
+  const rnOk = workletSupported() && rateOk && rnnoiseAssets && !rnnoiseFailed;
+  if (prefs.noise === 'dfn') {
+    if (dfnSupported() && rateOk && dfnAssets && !dfnFailed) return 'dfn';
+    return rnOk ? 'ai' : 'browser';   // enquanto o forte baixa (ou se falhar), o RNNoise segura
   }
+  if (prefs.noise === 'ai') return rnOk ? 'ai' : 'browser';
   return prefs.noise === 'off' ? 'off' : 'browser';
 }
 
@@ -2434,9 +2565,10 @@ function micErrorText(e) { return MIC_ERRORS[e && e.name] || "Não consegui ativ
 function teardownChain() {
   try { if (micTrack) { micTrack.onended = null; micTrack.onmute = null; micTrack.onunmute = null; } } catch (e) {}
   disconnectMonitor();
-  [micSourceNode, rawAnalyser, rnnoiseNode, gateNode].forEach((n) => { try { if (n) n.disconnect(); } catch (e) {} });
+  [micSourceNode, rawAnalyser, rnnoiseNode, dfnNode, gateNode].forEach((n) => { try { if (n) n.disconnect(); } catch (e) {} });
   try { if (rnnoiseNode) rnnoiseNode.port.postMessage('destroy'); } catch (e) {}
-  micSourceNode = rawAnalyser = rnnoiseNode = gateNode = null;
+  try { if (dfnNode) { dfnNode.port.onmessage = null; dfnNode.port.postMessage({ destroy: true }); } } catch (e) {}
+  micSourceNode = rawAnalyser = rnnoiseNode = dfnNode = gateNode = null;
 }
 
 function attachMicTrack(track) {
@@ -2454,7 +2586,20 @@ async function doAttachMic(track) {
   micSourceNode.connect(rawAnalyser);
   let node = micSourceNode, reacquire = false;
   if (workletSupported()) {
-    if (effectiveNoise() === 'ai') {
+    let mode = effectiveNoise();
+    if (mode === 'dfn') {
+      try {
+        dfnNode = await makeDfnNode(ctx);
+        node.connect(dfnNode); node = dfnNode;
+      } catch (e) {
+        console.warn('dfn', e);
+        dfnNode = null; dfnFailed = true;
+        mode = effectiveNoise();          // cai pro RNNoise (mesma captura) ou, sem ele, pro filtro do navegador
+        if (mode === 'browser') reacquire = true;
+        toast('O filtro forte não funcionou neste aparelho; usando o filtro de IA normal.');
+      }
+    }
+    if (mode === 'ai') {
       try {
         await ensureRnnoiseModule();
         rnnoiseNode = new AudioWorkletNode(ctx, '@sapphi-red/web-noise-suppressor/rnnoise', {
@@ -2897,13 +3042,20 @@ function refreshMicInfo() {
   const s = micTrack.getSettings ? micTrack.getSettings() : {};
   const yn = (v) => v === undefined ? '?' : (v ? 'sim' : 'não');
   el.textContent = 'Em uso — eco: ' + yn(s.echoCancellation) + ' · ruído do navegador: ' + yn(s.noiseSuppression) + ' · AGC: ' + yn(s.autoGainControl) +
-    ' · filtro IA: ' + (rnnoiseNode ? 'ativo' : 'inativo') + (s.sampleRate ? ' · ' + s.sampleRate + ' Hz' : '') + (s.channelCount ? ' · ' + s.channelCount + ' canal' : '');
+    ' · filtro IA: ' + (dfnNode ? 'forte (DeepFilterNet), ' + Math.round(dfnMem / 1048576) + ' MB' : rnnoiseNode ? 'ativo' : 'inativo') + (s.sampleRate ? ' · ' + s.sampleRate + ' Hz' : '') + (s.channelCount ? ' · ' + s.channelCount + ' canal' : '');
 }
 function refreshNoiseHint() {
   const el = $('noiseHint');
   if (!el) return;
   let t = '';
-  if (prefs.noise === 'ai') {
+  if (prefs.noise === 'dfn') {
+    const rnTxt = rnnoiseAssets ? 'o filtro de IA normal' : 'o do navegador';
+    if (!dfnSupported()) t = 'Este navegador não suporta o filtro forte; usando ' + rnTxt + '.';
+    else if (audioCtx && audioCtx.sampleRate !== 48000) t = 'Este aparelho não abriu o áudio em 48 kHz; usando o filtro do navegador.';
+    else if (dfnFailed) t = 'O filtro forte não carregou (internet ou aparelho). Usando ' + rnTxt + ' por enquanto.';
+    else if (!dfnAssets) t = dfnProgress >= 0 ? 'Baixando o filtro forte... ' + dfnProgress + '% (~12 MB, só na primeira vez). Enquanto isso, ' + rnTxt + ' segura.' : 'O filtro forte baixa ~12 MB na primeira vez e fica guardado.';
+    else t = 'Rede neural mais pesada (DeepFilterNet3), roda no seu aparelho: tira teclado, ventilador e barulho de fundo com a voz mais natural. Enquanto ligada usa uns 10% de um núcleo do processador e ~50 MB de memória, e a voz atrasa uns 40 ms; no mudo ela pausa.';
+  } else if (prefs.noise === 'ai') {
     if (!workletSupported()) t = 'Este navegador não suporta o filtro de IA; usando o do navegador.';
     else if (audioCtx && audioCtx.sampleRate !== 48000) t = 'Este aparelho não abriu o áudio em 48 kHz; usando o filtro do navegador.';
     else if (rnnoiseFailed && !rnnoiseAssets) t = 'Não consegui baixar o filtro de IA (internet ou bloqueio). Usando o do navegador por enquanto.';
@@ -2928,6 +3080,8 @@ function initSettingsValues() {
   $('setMonitorSrc').value = monitorSrc;
   const aiOpt = [...$('setNoise').options].find((o) => o.value === 'ai');
   if (aiOpt) aiOpt.disabled = !workletSupported();
+  const dfnOpt = [...$('setNoise').options].find((o) => o.value === 'dfn');
+  if (dfnOpt) dfnOpt.disabled = !dfnSupported();
   refreshShortcutLabels();
 }
 
@@ -2947,8 +3101,11 @@ $('setMicDevice').onchange = (e) => { prefs.micDevice = e.target.value; savePref
 $('setOutDevice').onchange = (e) => { prefs.outDevice = e.target.value; savePrefs(); applySinkAll(); };
 $('setGain').oninput = (e) => setMicVolume(Number(e.target.value), 'panel');
 $('setNoise').onchange = async (e) => {
+  const prev = prefs.noise;
   prefs.noise = e.target.value; savePrefs();
-  if (prefs.noise === 'ai' && workletSupported()) { refreshNoiseHint(); await prepareNoise(10000); }
+  if (prev === 'dfn' && prefs.noise !== 'dfn') releaseDfn();   // solta o filtro forte da memória
+  if (prefs.noise === 'dfn') dfnFailed = false;                 // escolher de novo = tentar de novo
+  if ((prefs.noise === 'ai' || prefs.noise === 'dfn') && workletSupported()) { refreshNoiseHint(); await prepareNoise(10000, 2500); }
   refreshNoiseHint();
   applyMicSettings();
 };
@@ -2983,8 +3140,8 @@ $('setShortcutBtn').onclick = () => {
 // Estado inicial da tela de entrada: nome salvo e pré-carregamento do filtro de IA (não atrapalha a abertura da página)
 if (prefs.name) $('nameInput').value = prefs.name;
 try { const k = sessionStorage.getItem('cz-kicked'); if (k) { sessionStorage.removeItem('cz-kicked'); setStatus('O anfitrião tirou você da sala ' + k + '.'); } } catch (e) {}
-if (prefs.noise === 'ai' && workletSupported()) {
-  const warm = () => loadRnnoiseAssets().catch(() => {});
+if ((prefs.noise === 'ai' || prefs.noise === 'dfn') && workletSupported()) {
+  const warm = () => { loadRnnoiseAssets().catch(() => {}); if (prefs.noise === 'dfn' && dfnSupported()) loadDfnAssets().catch(() => {}); };
   if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 3000 }); else setTimeout(warm, 1500);
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) resumeAudio(); });
@@ -4039,7 +4196,7 @@ window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // cel
 // O Android não deixa um app fora da Play Store se instalar sozinho: mostramos um aviso com o link do APK novo.
 // (No PC quem cuida disso é o próprio app, ver electron/main.js.)
 // Versão do CallZinha: sobe junto com o package.json a cada versão nova (o build dos apps confere e iguala)
-const APP_VERSION = '1.17.0';
+const APP_VERSION = '1.18.0';
 $('appVersion').textContent = 'v' + APP_VERSION + ' · ' + (window.Capacitor ? 'app Android' : location.protocol === 'app:' ? 'app de PC' : 'site');
 (function checkAndroidUpdate() {
   const C = window.Capacitor;
