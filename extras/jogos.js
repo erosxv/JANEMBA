@@ -12,7 +12,7 @@
     { id: 'stop', file: 'jogo-stop', global: 'CZJogoStop', em: '🛑', name: 'Stop', sub: 'adedonha clássica', ready: true },
     { id: 'bomba', em: '💣', name: 'Bomba de sílabas', sub: 'em breve' },
     { id: 'desenho', file: 'jogo-desenho', global: 'CZJogoDesenho', em: '✏️', name: 'Desenha e adivinha', sub: 'estilo Gartic', ready: true },
-    { id: 'truco', em: '🃏', name: 'Truco', sub: 'em breve' },
+    { id: 'uno', file: 'jogo-uno', global: 'CZJogoUno', em: '🃏', name: 'UNO', sub: 'cada um com sua mão', ready: true },
   ];
 
   const CSS = `

@@ -22,7 +22,7 @@
     comidas: { name: 'Comidas', words: ['pizza', 'hambúrguer', 'cachorro-quente', 'sorvete', 'bolo', 'pipoca', 'banana', 'maçã', 'abacaxi',
       'melancia', 'uva', 'morango', 'cenoura', 'milho', 'ovo frito', 'pão', 'queijo', 'brigadeiro', 'coxinha', 'pastel', 'sushi',
       'macarrão', 'batata frita', 'chocolate', 'pirulito', 'rosquinha', 'café', 'laranja', 'limão', 'tomate', 'pimenta', 'coco',
-      'sanduíche', 'panqueca', 'pudim', 'picolé', 'cereja', 'abacate', 'churrasco', 'açaí', 'pão de queijo', 'cupcake', 'algodão-doce'] },
+      'sanduíche', 'panqueca', 'pudim', 'picolé', 'feijão', 'arroz', 'feijoada', 'cereja', 'abacate', 'churrasco', 'açaí', 'pão de queijo', 'cupcake', 'algodão-doce'] },
     objetos: { name: 'Objetos', words: ['cadeira', 'guarda-chuva', 'óculos', 'relógio', 'celular', 'televisão', 'computador', 'chave',
       'tesoura', 'lâmpada', 'vela', 'livro', 'lápis', 'mochila', 'sapato', 'chapéu', 'bola', 'violão', 'escova de dentes', 'espelho',
       'garrafa', 'xícara', 'garfo', 'panela', 'geladeira', 'ventilador', 'cama', 'sofá', 'escada', 'bicicleta', 'carro', 'avião', 'navio',
@@ -67,7 +67,8 @@
   .dz-players b { color: #f5c000; }
   .dz-feed { display: flex; flex-direction: column; gap: 2px; height: 180px; overflow-y: auto; padding: 6px 8px; border-radius: 8px; background: #0f1115; font-size: 13px; overflow-wrap: anywhere; }
   .dz-feed .ok { color: #3ddc97; font-weight: 700; }
-  .dz-feed .close { color: #f5c000; }
+  .dz-feed .close { color: #ff9f43; font-weight: 600; }
+  .dz-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 6px; background: #ff9f43; color: #1a0e00; font-size: 11px; font-weight: 800; }
   .dz-feed .sys { color: #8a919b; font-style: italic; }
   .dz-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 5px; }
   .dz-sw { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid #2a2e37; }
@@ -98,6 +99,17 @@
     }
     return prev[b.length];
   }
+  // chute "perto" (g e w já normalizados): uma letra errada, mesma raiz ("feijoada" para "feijão") ou parte da resposta
+  function closeTo(g, w) {
+    if (w.length < 3 || g.length < 3) return false;
+    const gw = g.replace(/ /g, ''), ww = w.replace(/ /g, '');
+    if (ww.length >= 4 && lev(gw, ww) <= Math.max(1, Math.floor(ww.length / 4))) return true;
+    let p = 0;
+    while (p < gw.length && p < ww.length && gw[p] === ww[p]) p++;
+    if (p >= 4 && p >= Math.ceil(Math.min(gw.length, ww.length) * 0.6)) return true;
+    if (ww.length >= 4 && gw.includes(ww)) return true;
+    return w.includes(' ') && w.split(' ').some((part) => part.length >= 3 && part === g);
+  }
   const isLetter = (ch) => /[a-zà-öø-ÿ]/i.test(ch);
   const maskOf = (w) => [...w].map((ch) => (isLetter(ch) ? '_' : ch)).join('');
   const letterCount = (w) => [...w].filter(isLetter).length;
@@ -114,7 +126,7 @@
       phase: 'setup', n: 0, drawer: null, round: 0, rounds: 0, total: 0, limit: 80, t0: 0,
       mask: '', word: null, hitters: new Set(), scores: {}, used: new Set(),
       ops: [], strokes: new Map(), sid: 0, feed: [], ui: null,
-      tool: 'pen', color: 0, size: 1, myHit: false, lastGuess: '',
+      tool: 'pen', color: 0, size: 1, myHit: false, lastGuess: '', gk: 0, myGuesses: {},
       m: null,   // estado só do mestre
     };
     const me = ctx.me;
@@ -222,11 +234,14 @@
         u.players.append(r);
       });
     }
-    function feedLine(text, cls) {
-      S.feed.push({ text, cls }); if (S.feed.length > 60) S.feed.shift();
-      if (S.ui) { const d = el('div', cls || '', text); S.ui.feed.append(d); while (S.ui.feed.childNodes.length > 60) S.ui.feed.firstChild.remove(); S.ui.feed.scrollTop = S.ui.feed.scrollHeight; }
+    // tag: etiqueta depois do texto (o "perto!" dos chutes quase certos)
+    const feedEl = (f) => { const d = el('div', f.cls || '', f.text); if (f.tag) d.append(el('span', 'dz-tag', f.tag)); return d; };
+    function feedLine(text, cls, tag) {
+      const f = { text, cls, tag };
+      S.feed.push(f); if (S.feed.length > 60) S.feed.shift();
+      if (S.ui) { S.ui.feed.append(feedEl(f)); while (S.ui.feed.childNodes.length > 60) S.ui.feed.firstChild.remove(); S.ui.feed.scrollTop = S.ui.feed.scrollHeight; }
     }
-    function renderFeed() { const u = S.ui; u.feed.replaceChildren(...S.feed.map((f) => el('div', f.cls || '', f.text))); u.feed.scrollTop = u.feed.scrollHeight; }
+    function renderFeed() { const u = S.ui; u.feed.replaceChildren(...S.feed.map(feedEl)); u.feed.scrollTop = u.feed.scrollHeight; }
 
     function renderBottom() {
       const u = S.ui;
@@ -272,7 +287,8 @@
         if (!t || S.myHit || S.phase !== 'draw') return;
         inp.value = '';
         S.lastGuess = t;
-        emit('guess', { n: S.n, t });
+        const k = ++S.gk; S.myGuesses[k] = t;   // a resposta de "perto" volta só com o número do chute
+        emit('guess', { n: S.n, t, k });
       };
       row.append(inp, send);
       u.bottom.append(row);
@@ -451,13 +467,15 @@
       if (L >= 4) later(reveal, S.limit * 500);
       if (L >= 6) later(reveal, S.limit * 750);
     }
-    function checkGuess(from, t) {
+    function checkGuess(from, t, k) {
       if (S.hitters.has(from) || from === me) return;
       const g = ctx.norm(t), w = ctx.norm(S.word);
       if (!g) return;
       const ok = g === w || (' ' + g + ' ').includes(' ' + w + ' ');
-      const close = !ok && w.length >= 4 && g.length >= 3 && lev(g, w) <= (w.length >= 8 ? 2 : 1);
-      emitAll('verdict', { n: S.n, who: from, ok, close, t: ok || close ? '' : t });
+      const close = !ok && closeTo(g, w);
+      // o chute "perto" não vai para a sala (seria dica para os outros): quem desenha vê aqui, quem chutou vê pelo número k
+      if (close) feedLine(ctx.nameOf(from) + ': ' + t, 'close', 'perto');
+      emitAll('verdict', { n: S.n, who: from, ok, close, k: Number.isInteger(k) ? k : 0, t: ok || close ? '' : t });
     }
 
     // ---------------- mestre ----------------
@@ -576,20 +594,22 @@
         if (a === 'verdict') {
           const who = String(d.who || ''); const t = api.cleanText(d.t || '').slice(0, 60);
           if (d.ok) { if (who === me) { S.myHit = true; renderAll(); } return; }
-          if (d.close) feedLine(who === me ? '🔥 Quase! Você está bem perto' : ctx.nameOf(who) + ' está quase lá!', 'close');
-          else feedLine(ctx.nameOf(who) + ': ' + t);
+          if (d.close) {
+            if (who === me) feedLine('Você: ' + (S.myGuesses[d.k] || S.lastGuess), 'close', 'perto!');
+            else if (S.drawer !== me) feedLine(ctx.nameOf(who) + ' chutou algo perto!', 'close');
+          } else feedLine(ctx.nameOf(who) + ': ' + t);
           return;
         }
         if (a === 'reveal') { if (typeof d.word === 'string' && d.word) S.revealed = api.cleanText(d.word).slice(0, 40); return; }
       }
 
-      if (a === 'guess' && S.drawer === me && d.n === S.n && S.phase === 'draw' && typeof d.t === 'string') checkGuess(from, api.cleanText(d.t).slice(0, 60));
+      if (a === 'guess' && S.drawer === me && d.n === S.n && S.phase === 'draw' && typeof d.t === 'string') checkGuess(from, api.cleanText(d.t).slice(0, 60), d.k);
     }
 
     function resetTurn(d) {
       S.n = d.n; S.total = Number(d.total) || 1; S.drawer = String(d.drawer || ''); S.round = Number(d.round) || 1; S.rounds = Number(d.rounds) || 1;
       S.theme = THEMES[d.theme] ? d.theme : 'geral'; S.limit = Math.min(300, Number(d.limit) || 80);
-      S.scores = clean(d.scores); S.hitters = new Set(); S.myHit = false; S.lastGuess = '';
+      S.scores = clean(d.scores); S.hitters = new Set(); S.myHit = false; S.lastGuess = ''; S.myGuesses = {};
       S.mask = ''; S.word = null; S.revealed = null; S.gains = {}; S.stopText = '';
       S.ops = []; S.strokes = new Map(); S.options = null; S.rerolled = false; S.pickUntil = 0;
     }
