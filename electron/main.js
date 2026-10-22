@@ -12,6 +12,9 @@ protocol.registerSchemesAsPrivileged([
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
+// Menos memória: sem processo "reserva" de página e sem teclas de mídia do teclado mexendo no player
+app.commandLine.appendSwitch('disable-features', 'SpareRendererForSitePerProcess,HardwareMediaKeyHandling');
+
 let win = null;
 
 function createWindow() {
@@ -23,7 +26,8 @@ function createWindow() {
     backgroundColor: '#0f1115',
     autoHideMenuBar: true,
     icon: path.join(WWW, 'icons', 'icon-512.png'),
-    webPreferences: { contextIsolation: true, sandbox: true }
+    // sem corretor ortográfico (o dicionário fica carregado na memória à toa)
+    webPreferences: { contextIsolation: true, sandbox: true, spellcheck: false, enableWebSQL: false }
   });
   win.loadURL('app://callzinha/index.html');
 

@@ -1655,8 +1655,9 @@ let audioCtx = null;
 function getAudioCtx() {
   if (!audioCtx) {
     const AC = window.AudioContext || window.webkitAudioContext;
-    // 48 kHz = taxa nativa do Opus e do filtro de ruído (RNNoise); latência "interactive" = menor atraso
-    try { audioCtx = new AC({ sampleRate: 48000, latencyHint: 'interactive' }); }
+    // 48 kHz = taxa nativa do Opus e do filtro de ruído (RNNoise). Latência "balanced": ~10 ms a mais, mas o filtro
+    // de IA não falha quando o PC fica ocupado (jogo, compartilhar tela): falha aqui vira voz robótica/picotada
+    try { audioCtx = new AC({ sampleRate: 48000, latencyHint: 'balanced' }); }
     catch (e) { audioCtx = new AC(); }
     audioCtx.onstatechange = () => { if (audioCtx.state === 'suspended' || audioCtx.state === 'interrupted') { try { audioCtx.resume(); } catch (e) {} } };
   }
@@ -1740,6 +1741,25 @@ function getPlaceholderVideoTrack() {
   }
   return placeholderVideo;
 }
+
+// O navegador sincroniza áudio e vídeo do MESMO stream (lip-sync): se a tela compartilhada atrasa ou engasga,
+// ele segura a voz para acompanhar, o que gera atraso de segundos e depois a voz "acelerada"/robótica para recuperar.
+// Aqui a voz não precisa de sincronia com a tela: renomeamos o stream do vídeo recebido e cada um segue sozinho.
+(function unsyncRemoteVideo() {
+  const PC = window.RTCPeerConnection;
+  if (!PC || !PC.prototype.setRemoteDescription || PC.prototype._czUnsync) return;
+  const orig = PC.prototype.setRemoteDescription;
+  const ren = (a, k, id, sp) => (id === '-' || /-v$/.test(id)) ? a : k + id + '-v' + sp;
+  const fix = (sdp) => sdp.split(/(?=\r?\nm=)/).map((sec) => {
+    if (!/^\r?\n?m=video/.test(sec)) return sec;
+    return sec.replace(/(a=msid:)(\S+)( )/g, ren).replace(/(a=ssrc:\d+ msid:)(\S+)( )/g, ren);
+  }).join('');
+  PC.prototype.setRemoteDescription = function (desc, ...rest) {
+    try { if (desc && typeof desc.sdp === 'string') desc = { type: desc.type, sdp: fix(desc.sdp) }; } catch (e) {}
+    return orig.call(this, desc, ...rest);
+  };
+  PC.prototype._czUnsync = true;
+})();
 
 function outgoingStream() {
   ensureAudioGraph();
@@ -1855,8 +1875,13 @@ function onIceState(call, st) {
 function wireCall(call, name) {
   // ligação que nunca chega a conectar (par sumiu): fecha para cair na rotina de religação
   call._connectTimer = setTimeout(() => { if (calls[call.peer] === call && !call._gotStream) { try { call.close(); } catch (e) {} } }, 20000);
-  call.on('stream', (remoteStream) => {
+  call.on('stream', (part) => {
     if (calls[call.peer] !== call) return; // chamada antiga/duplicada
+    // áudio e vídeo chegam em streams separados (ver unsyncRemoteVideo): junta tudo num só para o tile
+    const have = call._tracks || (call._tracks = []);
+    part.getTracks().forEach((t) => { if (!have.some((x) => x.id === t.id)) have.push(t); });
+    if (call._remote && call._remote.getTracks().length === have.length) return;
+    const remoteStream = call._remote = new MediaStream(have);
     call._gotStream = true;
     clearTimeout(call._connectTimer);
     const video = addRemoteTile(call.peer, name || remoteNames[call.peer]);
@@ -2634,6 +2659,9 @@ async function collectStats(pid) {
       if (kind === 'audio') {
         cur.aIn = r.bytesReceived; cur.aLost = r.packetsLost; cur.aRecv = r.packetsReceived;
         if (typeof r.jitter === 'number') m.jitter = r.jitter * 1000;
+        cur.aSamp = r.totalSamplesReceived; cur.aConc = r.concealedSamples; cur.aSilConc = r.silentConcealedSamples;
+        cur.aStretch = (r.insertedSamplesForDeceleration || 0) + (r.removedSamplesForAcceleration || 0);
+        cur.jbd = r.jitterBufferDelay; cur.jbe = r.jitterBufferEmittedCount;
       } else if (kind === 'video') {
         cur.vIn = r.bytesReceived; m.w = r.frameWidth; m.h = r.frameHeight; m.fps = r.framesPerSecond;
       }
@@ -2660,6 +2688,14 @@ async function collectStats(pid) {
     const dL = Math.max(0, cur.aLost - prev.aLost), dR = Math.max(0, cur.aRecv - prev.aRecv);
     if (dL + dR > 0) m.loss = dL / (dL + dR) * 100;
   }
+  const d = (k) => (typeof cur[k] === 'number' && typeof prev[k] === 'number') ? cur[k] - prev[k] : null;
+  const dS = d('aSamp');
+  if (dS > 0) {
+    const conc = Math.max(0, (d('aConc') || 0) - (d('aSilConc') || 0)) + Math.max(0, d('aStretch') || 0);
+    m.robot = Math.min(100, conc / dS * 100);   // % da voz reconstruída/esticada: acima de ~5% soa robótica
+  }
+  const dE = d('jbe');
+  if (dE > 0) m.buf = d('jbd') / dE * 1000;     // atraso que o buffer de áudio está segurando (ms)
   statsPrev[pid] = cur;
   return m;
 }
@@ -2740,6 +2776,8 @@ function renderDiag(out) {
     row('Latência (ida e volta)', num(m.rtt, 0, ' ms'), m.rtt >= 800 ? 'bd' : m.rtt >= 300 ? 'wn' : 'ok');
     row('Jitter (áudio)', num(m.jitter, 1, ' ms'), m.jitter >= 50 ? 'wn' : 'ok');
     row('Perda de pacotes (áudio)', num(m.loss, 1, ' %'), m.loss >= 15 ? 'bd' : m.loss >= 5 ? 'wn' : 'ok');
+    row('Atraso do buffer (áudio)', num(m.buf, 0, ' ms'), m.buf >= 400 ? 'bd' : m.buf >= 200 ? 'wn' : 'ok');
+    row('Voz reconstruída', num(m.robot, 1, ' %') + (m.robot >= 5 ? ' · pode soar robótica' : ''), m.robot >= 15 ? 'bd' : m.robot >= 5 ? 'wn' : 'ok');
     row('Áudio recebido', num(m.aIn, 0, ' kbps'));
     const st = peerStates[pid] || {};
     if (st.screen) {
@@ -3192,27 +3230,50 @@ function receiveMusic(msg) {
 }
 
 // ---- player do YouTube (carregado só quando alguém usa a música) ----
-function ensureYT() {
-  if (ytReady) return Promise.resolve();
-  if (ytLoading) return ytLoading;
-  ytLoading = new Promise((resolve) => {
-    window.onYouTubeIframeAPIReady = () => {
-      ytPlayer = new YT.Player('musicPlayer', {
-        width: '100%', height: '100%',
-        playerVars: { playsinline: 1, rel: 0, controls: 0, disablekb: 1, origin: location.origin },
-        events: {
-          onReady: () => { ytReady = true; applyMusicVolume(); resolve(); syncPlayer(); },
-          onStateChange: onYTState,
-          onError: onYTError
-        }
-      });
-    };
+// O player é uma página inteira escondida (~50-100 MB): só existe enquanto há música na fila.
+let ytApi = null, ytIdleTimer = null;
+function loadYTApi() {
+  if (window.YT && window.YT.Player) return Promise.resolve();
+  if (ytApi) return ytApi;
+  ytApi = new Promise((resolve) => {
+    window.onYouTubeIframeAPIReady = resolve;
     const s = document.createElement('script');
     s.src = 'https://www.youtube.com/iframe_api';
-    s.onerror = () => { ytLoading = null; toast('Não consegui carregar o player do YouTube.'); };
+    s.onerror = () => { ytApi = null; ytLoading = null; toast('Não consegui carregar o player do YouTube.'); };
     document.head.appendChild(s);
   });
+  return ytApi;
+}
+function ensureYT() {
+  clearTimeout(ytIdleTimer); ytIdleTimer = null;
+  if (ytReady) return Promise.resolve();
+  if (ytLoading) return ytLoading;
+  ytLoading = loadYTApi().then(() => new Promise((resolve) => {
+    let el = $('musicPlayer');
+    if (!el) { el = document.createElement('div'); el.id = 'musicPlayer'; $('musicVideo').insertBefore(el, $('musicStageClose')); }
+    ytPlayer = new YT.Player(el, {
+      width: '100%', height: '100%',
+      playerVars: { playsinline: 1, rel: 0, controls: 0, disablekb: 1, origin: location.origin },
+      events: {
+        onReady: () => { ytReady = true; applyMusicVolume(); resolve(); syncPlayer(); },
+        onStateChange: onYTState,
+        onError: onYTError
+      }
+    });
+  }));
   return ytLoading;
+}
+// Fila acabou (ou foi limpa) e ninguém pôs outra música em 1 minuto: desmonta o player e devolve a memória
+function scheduleYTIdle() {
+  const idle = ytPlayer && !musicTrack() && !document.body.classList.contains('yt-stage');
+  if (!idle) { clearTimeout(ytIdleTimer); ytIdleTimer = null; return; }
+  if (ytIdleTimer) return;
+  ytIdleTimer = setTimeout(() => {
+    ytIdleTimer = null;
+    if (!ytPlayer || !ytReady || musicTrack() || document.body.classList.contains('yt-stage')) return;
+    try { ytPlayer.destroy(); } catch (e) {}
+    ytPlayer = null; ytReady = false; ytLoading = null; ytLoadedId = ''; musicDuration = 0;
+  }, 60000);
 }
 
 let musicDucked = false;   // um jogo (ex.: Adivinhe a música) pediu silêncio na música da sala
@@ -3277,6 +3338,7 @@ function renderMusic() {
   const t = musicTrack();
   $('musicEmpty').style.display = t ? 'none' : '';
   $('musicTitle').textContent = t ? (t.title || t.id) : (music.queue.length ? 'Fim da fila' : 'Nada tocando');
+  scheduleYTIdle();
   $('musicBy').textContent = t ? 'Adicionada por ' + t.by : '';
   $('musicPlay').innerHTML = icon(music.playing ? 'pause' : 'play');
   $('musicBtn').classList.toggle('active', !$('musicPanel').classList.contains('closed') || music.playing);
@@ -3310,7 +3372,7 @@ function toggleMusicPanel(force) {
   if (force !== false && window.czPipDoc && musicPip) { try { musicPip.focus(); } catch (e) {} }
   const open = typeof force === 'boolean' ? force : $('musicPanel').classList.contains('closed');
   $('musicPanel').classList.toggle('closed', !open);
-  if (open) { ensureYT(); toggleChat(false); }
+  if (open) { if (musicTrack()) ensureYT(); toggleChat(false); }
   renderMusic();
 }
 
@@ -3667,7 +3729,7 @@ const fxApi = {
   ver: FX_VER,
   searchMusic: (q, n) => searchMusic(q, n),
   fetchVideoInfo: (id) => fetchVideoInfo(id),
-  ensureYT: () => ensureYT(),
+  ensureYT: () => loadYTApi(),
   duckMusic: (on) => { musicDucked = !!on; applyMusicVolume(); },
   myId: () => (peer ? peer.id : 'local'),
   myName: () => myName,
