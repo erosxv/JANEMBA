@@ -1,5 +1,6 @@
 // App de desktop do CallZinha (Windows e Linux): abre o site que está em www/ numa janela própria.
-const { app, BrowserWindow, protocol, net, session, desktopCapturer, dialog, shell } = require('electron');
+const { app, BrowserWindow, protocol, net, session, desktopCapturer, dialog, shell, ipcMain } = require('electron');
+const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
@@ -27,7 +28,11 @@ function createWindow() {
     autoHideMenuBar: true,
     icon: path.join(WWW, 'icons', 'icon-512.png'),
     // sem corretor ortográfico (o dicionário fica carregado na memória à toa)
-    webPreferences: { contextIsolation: true, sandbox: true, spellcheck: false, enableWebSQL: false }
+    // o preload roda também dentro dos players do YouTube (nodeIntegrationInSubFrames), para tirar os anúncios
+    webPreferences: {
+      contextIsolation: true, sandbox: true, spellcheck: false, enableWebSQL: false,
+      preload: path.join(__dirname, 'preload.js'), nodeIntegrationInSubFrames: true
+    }
   });
   win.loadURL('app://callzinha/index.html');
 
@@ -123,6 +128,15 @@ app.whenReady().then(() => {
       cb({ requestHeaders: details.requestHeaders });
     }
   );
+
+  // Limpador de anúncios do YouTube: o preload de cada player pede o código aqui
+  let noAds = '';
+  try { noAds = fs.readFileSync(path.join(WWW, 'yt-noads.js'), 'utf8'); } catch (e) {}
+  ipcMain.on('cz-noads', (e) => {
+    let host = '';
+    try { host = new URL(e.senderFrame.url).hostname; } catch (err) {}
+    e.returnValue = /(^|\.)youtube(-nocookie)?\.com$/.test(host) ? noAds : '';
+  });
 
   createWindow();
   setupAutoUpdate();

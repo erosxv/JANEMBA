@@ -690,6 +690,7 @@
   #joinScreen h1.brand { display: flex; align-items: center; gap: 12px; font-size: 40px; margin-bottom: 6px; }
   #joinScreen h1.brand .brand-mark { width: 64px; height: 64px; }
   #joinScreen p.sub { color: var(--cz-muted); font-weight: 600; }
+  #joinScreen p.ver { margin-top: 14px; color: var(--cz-muted); font-size: 12px; opacity: .75; text-align: center; letter-spacing: .02em; }
   #joinScreen .card { background: var(--cz-surface); border-color: var(--cz-line); border-radius: 20px; }
   #joinScreen .card label { color: var(--cz-muted); font-weight: 700; }
   #joinScreen .card input { background: var(--cz-bg); border-color: var(--cz-line); border-radius: 12px; color: var(--cz-text); }
@@ -797,6 +798,7 @@
     </div>
     <div id="status"></div>
   </div>
+  <p id="appVersion" class="ver"></p>
 </div>
 
 <div id="callScreen">
@@ -2302,6 +2304,10 @@ function ensureAudioGraph() {
   if (outDest) return;
   const ctx = getAudioCtx();
   outDest = ctx.createMediaStreamDestination();
+  // Mantém o motor de áudio preso ao relógio da placa de som. Sem nada tocando no alto-falante, o navegador passa a
+  // processar o microfone por um temporizador comum, e com a janela minimizada o Windows deixa esse temporizador
+  // impreciso: a voz sai em rajadas e chega picotada/robótica. Um sinal inaudível (-140 dB) na saída evita a troca.
+  try { const keep = ctx.createConstantSource(); keep.offset.value = 1e-7; keep.connect(ctx.destination); keep.start(); } catch (e) {}
   micGainNode = ctx.createGain();
   micGainNode.gain.value = micOn ? micVolumePercent / 100 : 0;
   micGainNode.connect(outDest);
@@ -3266,7 +3272,7 @@ function applyMusicCommand(cmd, by) {
   }
   broadcastMusic();
   renderMusic();
-  if (q.length) ensureYT().then(syncPlayer);
+  if (q.length) ensureYT().then(syncPlayer); else syncPlayer();   // fila vazia: para o que estiver tocando
 }
 
 function musicPayload() {
@@ -3288,7 +3294,7 @@ function receiveMusic(msg) {
   music = { queue: q, cur, playing: !!msg.playing && cur >= 0 && cur < q.length, pos: Math.max(0, Number(msg.pos) || 0), at: Date.now() };
   if (before.size) q.forEach(t => { if (!before.has(t.id + '|' + t.by) && t.by !== myName) notify('🎵 ' + t.by + ' adicionou ' + (t.title || t.id)); });
   renderMusic();
-  if (q.length) ensureYT().then(syncPlayer);
+  if (q.length) ensureYT().then(syncPlayer); else syncPlayer();   // fila vazia: para o que estiver tocando
 }
 
 // ---- player do YouTube (carregado só quando alguém usa a música) ----
@@ -3565,7 +3571,7 @@ $('musicAddForm').onsubmit = async (e) => {
 $('musicUrl').addEventListener('input', () => { if (!$('musicUrl').value) $('musicResults').hidden = true; });
 
 setInterval(() => {
-  if (!music.queue.length) return;
+  if (!music.queue.length) { if (ytLoadedId) syncPlayer(); return; }   // rede de segurança: nada na fila = nada tocando
   syncPlayer();
   hostCheckEnd(false);
   renderMusicTime();
@@ -4032,10 +4038,12 @@ window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // cel
 // ================= app de Android: avisa quando sai versão nova =================
 // O Android não deixa um app fora da Play Store se instalar sozinho: mostramos um aviso com o link do APK novo.
 // (No PC quem cuida disso é o próprio app, ver electron/main.js.)
-const APP_VERSION = '__CZ_APP_VERSION__';
+// Versão do CallZinha: sobe junto com o package.json a cada versão nova (o build dos apps confere e iguala)
+const APP_VERSION = '1.15.0';
+$('appVersion').textContent = 'v' + APP_VERSION + ' · ' + (window.Capacitor ? 'app Android' : location.protocol === 'app:' ? 'app de PC' : 'site');
 (function checkAndroidUpdate() {
   const C = window.Capacitor;
-  if (!C || !C.getPlatform || C.getPlatform() !== 'android' || !/^\d/.test(APP_VERSION)) return;
+  if (!C || !C.getPlatform || C.getPlatform() !== 'android') return;
   const newer = (a, b) => {
     const x = a.split('.').map(Number), y = b.split('.').map(Number);
     for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); }
