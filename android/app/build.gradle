@@ -7,8 +7,8 @@ android {
         applicationId "io.github.erosxv.callzinha"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 28
-        versionName "1.19.0"
+        versionCode 29
+        versionName "1.19.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +16,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Chave fixa: todo APK sai com a mesma assinatura, para a versão nova instalar por cima da antiga.
+    // No GitHub a chave e a senha vêm dos segredos ANDROID_KEYSTORE e ANDROID_KEYSTORE_PASSWORD.
+    signingConfigs {
+        release {
+            def ks = System.getenv('CZ_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('CZ_KEYSTORE_PASS')
+                keyAlias 'callzinha'
+                keyPassword System.getenv('CZ_KEYSTORE_PASS')
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

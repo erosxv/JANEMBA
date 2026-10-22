@@ -66,13 +66,22 @@ jobs:
         with: { distribution: temurin, java-version: 21 }
       - run: npm ci
       - run: npm run build:web && npx cap sync android
+      # Chave de assinatura fixa: o .jks em base64 e a senha ficam nos segredos do repositório.
+      # Sem eles o APK sairia com outra assinatura e não instalaria por cima do app antigo, então o build para.
+      - name: Chave de assinatura
+        env: { KS: '${{ secrets.ANDROID_KEYSTORE }}' }
+        run: |
+          if [ -z "$KS" ]; then echo "::error title=Assinatura::Falta o segredo ANDROID_KEYSTORE no GitHub"; exit 1; fi
+          echo "$KS" | base64 -d > "$RUNNER_TEMP/callzinha.jks"
+          echo "CZ_KEYSTORE=$RUNNER_TEMP/callzinha.jks" >> "$GITHUB_ENV"
       # Se o Gradle falhar, o trecho "What went wrong" vira uma anotação (dá pra ler sem login no GitHub)
       - name: Gerar APK
+        env: { CZ_KEYSTORE_PASS: '${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' }
         run: |
           chmod +x android/gradlew
           cd android
           set +e
-          ./gradlew assembleDebug --stacktrace 2>&1 | tee ../gradle.log
+          ./gradlew assembleRelease --stacktrace 2>&1 | tee ../gradle.log
           status=${PIPESTATUS[0]}
           if [ "$status" -ne 0 ]; then
             msg=$(grep -A30 "What went wrong" ../gradle.log | head -45)
@@ -81,7 +90,7 @@ jobs:
             echo "::error title=Gradle::$msg"
           fi
           exit $status
-      - run: mv android/app/build/outputs/apk/debug/app-debug.apk CallZinha.apk
+      - run: mv android/app/build/outputs/apk/release/app-release.apk CallZinha.apk
       - uses: actions/upload-artifact@v4
         with: { name: callzinha-android, path: CallZinha.apk }
       - if: startsWith(github.ref, 'refs/tags/')
