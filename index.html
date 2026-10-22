@@ -2033,6 +2033,7 @@ function screenConstraints() {
   if (prefs.screenAudio) {
     opts.audio = Object.assign({}, SCREEN_AUDIO);
     opts.systemAudio = 'include';
+    opts.windowAudio = 'window';   // compartilhando uma janela: só o som daquele programa, não o do PC inteiro
   }
   return opts;
 }
@@ -3859,18 +3860,25 @@ async function toggleAudioShare() {
   if (audioShareStream) { stopAudioShare(); return; }
   if (sharingScreen) { toast('Você já está compartilhando a tela. O som dela vai junto se você marcou "Compartilhar áudio".'); return; }
   let s;
-  try { s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: Object.assign({}, SCREEN_AUDIO), systemAudio: 'include', selfBrowserSurface: 'exclude' }); }
+  // A janela de escolha já abre em "Janela": escolhendo um programa (Spotify, jogo), vai só o som dele.
+  // Tela inteira = som do PC todo; aba do navegador = som só daquela aba.
+  try { s = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'window' }, audio: Object.assign({}, SCREEN_AUDIO), systemAudio: 'include', windowAudio: 'window', selfBrowserSurface: 'exclude' }); }
   catch (e) {
     if (e && (e.name === 'NotAllowedError' || e.name === 'AbortError')) return;   // usuário cancelou
     try { s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }); } catch (e2) { return; }   // navegador não aceitou as opções
   }
   const at = s.getAudioTracks()[0];
+  const vt = s.getVideoTracks()[0];
+  const surface = vt && vt.getSettings ? vt.getSettings().displaySurface : '';
   s.getVideoTracks().forEach((t) => t.stop());
-  if (!at) { toast('Faltou marcar "Compartilhar áudio" na janela. Tente de novo.'); return; }
+  if (!at) {
+    toast(surface === 'window' ? 'Este navegador não manda o som de uma janela sozinha. Escolha a aba (no Chrome) ou a tela inteira.' : 'Faltou marcar "Compartilhar áudio" na janela. Tente de novo.');
+    return;
+  }
   audioShareStream = s;
   connectScreenAudio(at);
   $('audioShareBtn').classList.add('active');
-  toast('Compartilhando só o áudio');
+  toast(surface === 'monitor' ? 'Compartilhando o som do PC inteiro. Para mandar só um programa, escolha a janela dele.' : 'Compartilhando só o áudio');
   at.onended = () => { if (audioShareStream === s) stopAudioShare(); };
 }
 function stopAudioShare(quiet) {
