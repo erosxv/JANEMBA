@@ -10,4 +10,9 @@ const FILES = ['index.html', 'manifest.webmanifest', 'sw.js', 'icons', 'extras']
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);
 for (const f of FILES) fs.cpSync(path.join(root, f), path.join(out, f), { recursive: true });
+
+// Os apps sabem a própria versão (para o aviso de versão nova no Android); o site fica com o marcador e ignora
+const { version } = require(path.join(root, 'package.json'));
+const idx = path.join(out, 'index.html');
+fs.writeFileSync(idx, fs.readFileSync(idx, 'utf8').replace("'__CZ_APP_VERSION__'", JSON.stringify(version)));
 console.log('www/ pronto');

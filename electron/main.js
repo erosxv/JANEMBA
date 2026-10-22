@@ -38,6 +38,36 @@ function createWindow() {
   });
 }
 
+// Atualização automática: ao abrir (e a cada 4 h) olha a última versão publicada no GitHub, baixa em segundo plano
+// e pergunta se pode reiniciar. Se a pessoa disser "Depois", instala sozinha quando o app for fechado.
+function setupAutoUpdate() {
+  if (!app.isPackaged) return;
+  let updater;
+  try { updater = require('electron-updater').autoUpdater; } catch (e) { return; }
+  updater.autoDownload = true;
+  updater.autoInstallOnAppQuit = true;
+  updater.on('error', () => {});   // sem internet, GitHub fora do ar ou formato sem suporte (.deb/.tar.gz): segue sem atualizar
+  let asked = false;
+  updater.on('update-downloaded', async (info) => {
+    if (asked) return;
+    asked = true;
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'info',
+      title: 'Atualização pronta',
+      message: 'A versão ' + info.version + ' do CallZinha já foi baixada.',
+      detail: 'Reiniciar agora leva poucos segundos. Se estiver numa call, escolha "Depois": ela é instalada quando você fechar o app.',
+      buttons: ['Reiniciar agora', 'Depois'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true
+    });
+    if (response === 0) updater.quitAndInstall(true, true);
+  });
+  const check = () => { updater.checkForUpdates().catch(() => {}); };
+  check();
+  setInterval(check, 4 * 60 * 60 * 1000);
+}
+
 // Compartilhar tela: o Electron não tem o seletor do Chrome, então mostramos um nosso
 async function pickScreen(request, callback) {
   const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
@@ -95,6 +125,7 @@ app.whenReady().then(() => {
   );
 
   createWindow();
+  setupAutoUpdate();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 

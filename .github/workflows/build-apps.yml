@@ -18,13 +18,17 @@ jobs:
         include:
           - os: windows-latest
             script: dist:win
-            files: dist/*.exe
+            files: |
+              dist/*.exe
+              dist/*.exe.blockmap
+              dist/latest.yml
           - os: ubuntu-latest
             script: dist:linux
             files: |
               dist/*.AppImage
               dist/*.deb
               dist/*.tar.gz
+              dist/latest-linux.yml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

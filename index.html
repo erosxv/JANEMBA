@@ -233,6 +233,13 @@
   #joinScreen, #callScreen { min-height: 100dvh; }
   #topbar { flex-wrap: wrap; gap: 8px; }
   #toast { z-index: 2000; }
+  #updateBar { position: fixed; left: 16px; right: 16px; margin: 0 auto; width: fit-content; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 2100;
+    display: flex; align-items: center; gap: 12px; max-width: 440px; padding: 10px 10px 10px 16px;
+    background: var(--cz-surface-2); color: var(--cz-text); border: 1px solid var(--cz-line); border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.45); font-size: 14px; }
+  #updateBar span { flex: 1; min-width: 0; }
+  #updateBar a { background: var(--cz-aqua); color: var(--cz-ink); font-weight: 700; text-decoration: none; padding: 7px 14px; border-radius: 10px; white-space: nowrap; }
+  #updateBar button { background: none; border: 0; color: var(--cz-muted); font-size: 22px; line-height: 1; padding: 2px 6px; cursor: pointer; }
   .tile video.has-video { object-fit: contain; }
   .tile-actions { position: absolute; right: 8px; bottom: 8px; display: none; gap: 8px; }
   .tile.has-screen .tile-actions { display: flex; }
@@ -3967,6 +3974,41 @@ $('musicStageClose').onclick = () => toggleYtStage(false);
 window.onbeforeunload = () => { if (peer) peer.destroy(); };
 window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // celular: libera o ID da sala mais rápido
 // PWA: registra o service worker (só em https ou localhost) para o app poder ser instalado. Dentro do app nativo não precisa.
+// ================= app de Android: avisa quando sai versão nova =================
+// O Android não deixa um app fora da Play Store se instalar sozinho: mostramos um aviso com o link do APK novo.
+// (No PC quem cuida disso é o próprio app, ver electron/main.js.)
+const APP_VERSION = '__CZ_APP_VERSION__';
+(function checkAndroidUpdate() {
+  const C = window.Capacitor;
+  if (!C || !C.getPlatform || C.getPlatform() !== 'android' || !/^\d/.test(APP_VERSION)) return;
+  const newer = (a, b) => {
+    const x = a.split('.').map(Number), y = b.split('.').map(Number);
+    for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); }
+    return false;
+  };
+  setTimeout(async () => {
+    let latest;
+    try {
+      const r = await fetch('https://api.github.com/repos/erosxv/JANEMBA/releases/latest', { cache: 'no-store' });
+      if (!r.ok) return;
+      latest = String((await r.json()).tag_name || '').replace(/^v/, '');
+    } catch (e) { return; }
+    if (!/^\d+\.\d+\.\d+$/.test(latest) || !newer(latest, APP_VERSION)) return;
+    let skip = '';
+    try { skip = localStorage.getItem('callzinha.skipUpdate') || ''; } catch (e) {}
+    if (skip === latest) return;
+    const bar = document.createElement('div');
+    bar.id = 'updateBar';
+    bar.innerHTML = '<span></span><a>Baixar</a><button title="Agora não" aria-label="Agora não">×</button>';
+    bar.querySelector('span').textContent = '🎉 Nova versão ' + latest + ' do CallZinha';
+    const a = bar.querySelector('a');
+    a.href = 'https://github.com/erosxv/JANEMBA/releases/latest/download/CallZinha.apk';
+    a.target = '_blank'; a.rel = 'noopener';
+    bar.querySelector('button').onclick = () => { try { localStorage.setItem('callzinha.skipUpdate', latest); } catch (e) {} bar.remove(); };
+    document.body.appendChild(bar);
+  }, 3000);
+})();
+
 if ('serviceWorker' in navigator && !window.Capacitor && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
