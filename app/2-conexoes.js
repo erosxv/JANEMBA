@@ -81,7 +81,9 @@ function hostId() { return 'callzinha-' + roomId; }
 function cleanName(n) { return String(n == null ? '' : n).replace(/[\u0000-\u001f]/g, '').trim().slice(0, 20); }
 function nameOf(pid) { return remoteNames[pid] || 'Participante'; }
 function isPeerPresent(pid) { return isHost ? !!hostConns[pid] : (knownPeers.has(pid) || pid === hostId()); }
-function myState() { return { mic: !!(hasMic && micOn), screen: !!sharingScreen }; }
+// Celular/tablet avisa os outros: quem compartilha a tela manda para ele uma versão mais leve (ver applySenderParams)
+const IS_PHONE = /Android|iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+function myState() { return { mic: !!(hasMic && micOn), screen: !!sharingScreen, mob: IS_PHONE }; }
 
 function sendMyState() {
   if (!peer) return;
@@ -99,7 +101,8 @@ function sendMyName() {
 
 function setPeerState(pid, st) {
   const prev = peerStates[pid] || {};
-  peerStates[pid] = { mic: st.mic !== false, screen: !!st.screen };
+  peerStates[pid] = { mic: st.mic !== false, screen: !!st.screen, mob: !!st.mob };
+  if (peerStates[pid].mob !== !!prev.mob && sharingScreen && calls[pid]) applySenderParams(calls[pid]);
   if (peerStates[pid].screen && !prev.screen) notify('🖥️ ' + nameOf(pid) + ' está compartilhando a tela');
   applyPeerState(pid);
 }
@@ -158,7 +161,7 @@ function handleData(fromId, msg) {
     });
   } else if (msg.type === 'state') {
     setPeerState(from, msg);
-    if (isHost) relay(fromId, { type: 'state', mic: !!msg.mic, screen: !!msg.screen });
+    if (isHost) relay(fromId, { type: 'state', mic: !!msg.mic, screen: !!msg.screen, mob: !!msg.mob });
   } else if (msg.type === 'name') {
     remoteNames[from] = cleanName(msg.name) || 'Participante';
     setRemoteAvatar(from, msg.av);

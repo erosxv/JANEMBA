@@ -15,6 +15,10 @@ function senderOf(call, kind) {
   return pc.getSenders().find((s) => s.track && s.track.kind === kind) || null;
 }
 
+// Celular que assiste uma tela grande por muito tempo pode estourar a memória do navegador
+// (no iPhone aparece "esta página foi recarregada devido a um problema"): para ele vai no máximo 720p, 24 fps e 2,5 Mbps.
+const PHONE_SCREEN = { height: 720, fps: 24, bitrate: 2.5e6 };
+
 // Parâmetros de envio por chamada: áudio com prioridade alta; vídeo com teto de bitrate/FPS e preferência nitidez×fluidez
 async function applySenderParams(call) {
   try {
@@ -32,8 +36,12 @@ async function applySenderParams(call) {
     if (v && sharingScreen) {
       const p = v.getParameters();
       if (p.encodings && p.encodings.length) {
-        p.encodings[0].maxBitrate = screenMaxBitrate();
-        p.encodings[0].maxFramerate = Number(prefs.fps) || 30;
+        const mob = !!(peerStates[call.peer] && peerStates[call.peer].mob);
+        const st = screenStream && screenStream.getVideoTracks()[0] ? screenStream.getVideoTracks()[0].getSettings() : {};
+        const fps = Number(prefs.fps) || 30;
+        p.encodings[0].maxBitrate = mob ? Math.min(screenMaxBitrate(), PHONE_SCREEN.bitrate) : screenMaxBitrate();
+        p.encodings[0].maxFramerate = mob ? Math.min(fps, PHONE_SCREEN.fps) : fps;
+        p.encodings[0].scaleResolutionDownBy = (mob && st.height > PHONE_SCREEN.height) ? st.height / PHONE_SCREEN.height : 1;
         p.encodings[0].priority = 'low'; p.encodings[0].networkPriority = 'low'; // se a rede apertar, o áudio vence a tela
         try { p.degradationPreference = prefs.screenMode === 'motion' ? 'maintain-framerate' : 'maintain-resolution'; } catch (e) {}
         await v.setParameters(p);
