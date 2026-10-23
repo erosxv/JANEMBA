@@ -377,6 +377,7 @@ function killCall(pid) {
   clearTimeout(c._discTimer); clearTimeout(c._connectTimer);
   delete calls[pid];
   try { c.close(); } catch (e) {}
+  if (sharingScreen) applySenderParamsAll();
 }
 
 function iAmCaller(pid) {
@@ -424,7 +425,7 @@ function onIceState(call, st) {
     clearTimeout(call._discTimer); clearTimeout(call._connectTimer);
     redialAttempts[pid] = 0;
     setReconnecting(pid, false);
-    applySenderParams(call);
+    applySenderParamsAll(); // mais alguém assistindo: a fatia de upload de cada um muda
   } else if (st === 'disconnected') {
     setReconnecting(pid, true);
     clearTimeout(call._discTimer);

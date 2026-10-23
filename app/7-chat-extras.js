@@ -459,7 +459,7 @@ window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // cel
 // O Android não deixa um app fora da Play Store se instalar sozinho: mostramos um aviso com o link do APK novo.
 // (No PC quem cuida disso é o próprio app, ver electron/main.js.)
 // Versão do CallZinha: sobe junto com o package.json a cada versão nova (o build dos apps confere e iguala)
-const APP_VERSION = '1.19.2';
+const APP_VERSION = '1.19.3';
 $('appVersion').textContent = 'v' + APP_VERSION + ' · ' + (window.Capacitor ? 'app Android' : location.protocol === 'app:' ? 'app de PC' : 'site');
 (function checkAndroidUpdate() {
   const C = window.Capacitor;

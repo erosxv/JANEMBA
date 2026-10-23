@@ -234,7 +234,7 @@ async function buildDiagText() {
     (dfnNode ? ' · memória ' + Math.round(dfnMem / 1048576) + ' MB' : '') + (dfnFailed ? ' · forte falhou' : '') + (rnnoiseFailed ? ' · RNNoise falhou' : '') +
     ' · portão ' + (prefs.gateOn ? prefs.gateThr + ' dB' : 'desligado'));
   if (audioCtx) L.push('Áudio: ' + audioCtx.sampleRate + ' Hz · ' + audioCtx.state + ' · latência ' + num((audioCtx.baseLatency || 0) * 1000, 0, ' ms') + ' + saída ' + num((audioCtx.outputLatency || 0) * 1000, 0, ' ms'));
-  L.push('TURN: ' + turnInfo + (sharingScreen ? ' · você está compartilhando a tela' : ''));
+  L.push('TURN: ' + turnInfo + (sharingScreen ? ' · você está compartilhando a tela (upload informado: ' + prefs.upload + ' Mbps)' : ''));
   let out = lastStats && Date.now() - lastStats.t < 6000 ? lastStats.out : null;
   if (!out) {
     const ids = Object.keys(calls), res = await Promise.all(ids.map(collectStats));
@@ -395,7 +395,7 @@ function initSettingsValues() {
   $('setEcho').checked = !!prefs.echo; $('setAgc').checked = !!prefs.agc;
   $('setGate').checked = !!prefs.gateOn; $('setGateThr').value = prefs.gateThr; $('setGateVal').textContent = prefs.gateThr + ' dB';
   $('gateRow').style.display = prefs.gateOn ? '' : 'none';
-  $('setRes').value = String(prefs.res); $('setFps').value = String(prefs.fps);
+  $('setRes').value = String(prefs.res); $('setFps').value = String(prefs.fps); $('setUpload').value = String(prefs.upload);
   $('setScreenMode').value = prefs.screenMode; $('setScreenAudio').checked = !!prefs.screenAudio;
   $('setNotices').checked = !!prefs.notices;
   $('setSounds').checked = !!prefs.sounds;
@@ -438,7 +438,8 @@ $('setGateThr').oninput = (e) => { prefs.gateThr = Number(e.target.value); $('se
 $('setGateThr').onchange = () => savePrefs();
 $('setRes').onchange = (e) => { prefs.res = Number(e.target.value); savePrefs(); applyScreenSettingsLive(); };
 $('setFps').onchange = (e) => { prefs.fps = Number(e.target.value); savePrefs(); applyScreenSettingsLive(); };
-$('setScreenMode').onchange = (e) => { prefs.screenMode = e.target.value; savePrefs(); applyScreenSettingsLive(); };
+$('setUpload').onchange = (e) => { prefs.upload = Number(e.target.value); savePrefs(); applySenderParamsAll(); };
+$('setScreenMode').onchange =(e) => { prefs.screenMode = e.target.value; savePrefs(); applyScreenSettingsLive(); };
 $('setScreenAudio').onchange = (e) => { prefs.screenAudio = e.target.checked; savePrefs(); if (sharingScreen) toast('O áudio da tela vale na próxima vez que você compartilhar.'); };
 $('setNotices').onchange = (e) => { prefs.notices = e.target.checked; savePrefs(); };
 $('setSounds').onchange = (e) => { prefs.sounds = e.target.checked; savePrefs(); if (prefs.sounds) playCue(true); };

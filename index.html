@@ -18,7 +18,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>window.Peer || document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');</script>
-<link rel="stylesheet" href="app/estilo.css?v=1.19.2">
+<link rel="stylesheet" href="app/estilo.css?v=1.19.3">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -250,6 +250,14 @@
           <option value="motion">Fluidez (jogos, vídeo)</option>
         </select>
       </div>
+      <div class="srow">
+        <label for="setUpload">Upload da sua internet</label>
+        <select id="setUpload">
+          <option value="3">3 Mbps</option><option value="5">5 Mbps</option><option value="10">10 Mbps</option>
+          <option value="20">20 Mbps</option><option value="50">50 Mbps</option><option value="100">100 Mbps ou mais</option>
+        </select>
+      </div>
+      <div class="hint" style="margin:-4px 0 8px">Veja em fast.com → "Mais informações". A tela usa no máximo 60% disso, dividido entre quem assiste: se passar do que a internet aguenta, a chamada trava para todos.</div>
       <div class="srow inline"><label for="setScreenAudio">Compartilhar áudio do sistema/aba</label><input type="checkbox" id="setScreenAudio"></div>
       <div class="hint" style="margin:-4px 0 8px">Marque também "compartilhar áudio" na janela do navegador. Use fones: sem eles, quem está na chamada ouve o próprio eco.</div>
       <div id="screenInfo">Esses valores são o máximo pedido. O que chega de verdade depende do navegador, do computador e da internet — veja em "Em uso" ao compartilhar e no diagnóstico.</div>
@@ -282,12 +290,12 @@
   </div>
 </aside>
 
-<script src="app/1-inicio.js?v=1.19.2"></script>
-<script src="app/2-conexoes.js?v=1.19.2"></script>
-<script src="app/3-tela.js?v=1.19.2"></script>
-<script src="app/4-audio.js?v=1.19.2"></script>
-<script src="app/5-interface.js?v=1.19.2"></script>
-<script src="app/6-musica.js?v=1.19.2"></script>
-<script src="app/7-chat-extras.js?v=1.19.2"></script>
+<script src="app/1-inicio.js?v=1.19.3"></script>
+<script src="app/2-conexoes.js?v=1.19.3"></script>
+<script src="app/3-tela.js?v=1.19.3"></script>
+<script src="app/4-audio.js?v=1.19.3"></script>
+<script src="app/5-interface.js?v=1.19.3"></script>
+<script src="app/6-musica.js?v=1.19.3"></script>
+<script src="app/7-chat-extras.js?v=1.19.3"></script>
 </body>
 </html>

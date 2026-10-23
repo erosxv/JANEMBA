@@ -81,6 +81,7 @@ const DEFAULT_PREFS = {
   noise: 'ai',            // 'ai' (RNNoise) | 'dfn' (DeepFilterNet3) | 'browser' | 'off'
   echo: true, agc: true, gain: 100, gateOn: false, gateThr: -50,
   res: 1080, fps: 30, screenMode: 'detail', screenAudio: false,
+  upload: 10,             // velocidade de envio (upload) da internet, em Mbps: a tela divide 60% disso entre quem assiste
   shortcut: 'KeyM', layout: 'grid', notices: true, musicVol: 60, reactBar: true, visual: 'auto', sounds: true, avatar: ''
 };
 function loadPrefs() {

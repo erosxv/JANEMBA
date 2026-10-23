@@ -39,7 +39,10 @@ async function applySenderParams(call) {
         const mob = !!(peerStates[call.peer] && peerStates[call.peer].mob);
         const st = screenStream && screenStream.getVideoTracks()[0] ? screenStream.getVideoTracks()[0].getSettings() : {};
         const fps = Number(prefs.fps) || 30;
-        p.encodings[0].maxBitrate = mob ? Math.min(screenMaxBitrate(), PHONE_SCREEN.bitrate) : screenMaxBitrate();
+        // a internet de envio é uma só: 60% do upload informado nos Ajustes, dividido entre quem assiste
+        const share = Math.max(0.5e6, (Number(prefs.upload) || 10) * 1e6 * 0.6 / Math.max(1, Object.keys(calls).length));
+        const cap = Math.min(screenMaxBitrate(), share);
+        p.encodings[0].maxBitrate = mob ? Math.min(cap, PHONE_SCREEN.bitrate) : cap;
         p.encodings[0].maxFramerate = mob ? Math.min(fps, PHONE_SCREEN.fps) : fps;
         p.encodings[0].scaleResolutionDownBy = (mob && st.height > PHONE_SCREEN.height) ? st.height / PHONE_SCREEN.height : 1;
         p.encodings[0].priority = 'low'; p.encodings[0].networkPriority = 'low'; // se a rede apertar, o áudio vence a tela
