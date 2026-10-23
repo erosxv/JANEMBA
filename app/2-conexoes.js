@@ -170,7 +170,7 @@ function handleData(fromId, msg) {
   } else if (msg.type === 'host-mute') {
     if (viaHost && hasMic && micOn) { toggleMic(); toast('O anfitrião mutou seu microfone'); }
   } else if (msg.type === 'kick') {
-    if (viaHost) { try { sessionStorage.setItem('cz-kicked', roomId); } catch (e) {} location.href = location.pathname; }
+    if (viaHost) { clearInRoom(); try { sessionStorage.setItem('cz-kicked', roomId); } catch (e) {} location.href = location.pathname; }
   } else if (msg.type === 'music') {
     if (viaHost) receiveMusic(msg);
   } else if (msg.type === 'music-cmd') {

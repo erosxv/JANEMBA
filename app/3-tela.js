@@ -219,7 +219,7 @@ function updateScreenInfo() {
 }
 
 $('leaveBtn').onclick = () => {
-  if (confirm("Sair da chamada?")) location.reload();
+  if (confirm("Sair da chamada?")) { clearInRoom(); location.reload(); }
 };
 
 // Atalho de teclado configurável (padrão: M) para mutar/desmutar — funciona enquanto a aba estiver em foco

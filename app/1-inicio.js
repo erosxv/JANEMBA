@@ -414,6 +414,23 @@ function enterCallUI() {
   if (!hasMic) showMediaBanner();
   $('netBadge').style.display = 'none';
   applyLayout(); refreshShortcutLabels(); startStatsLoop();
+  markInRoom(); setInterval(markInRoom, 20000);
+}
+
+// Se a página recarregar no meio da chamada (no iPhone, quando falta memória, aparece "esta página foi recarregada"),
+// o lobby oferece voltar para a mesma sala com um toque. O toque é obrigatório: sem ele o iPhone não libera o som.
+const REJOIN_KEY = 'cz-na-sala', REJOIN_MS = 15 * 60e3;
+function markInRoom() { try { localStorage.setItem(REJOIN_KEY, JSON.stringify({ room: roomId, t: Date.now() })); } catch (e) {} }
+function clearInRoom() { try { localStorage.removeItem(REJOIN_KEY); } catch (e) {} }
+function offerRejoin() {
+  let r = null;
+  try { r = JSON.parse(localStorage.getItem(REJOIN_KEY) || 'null'); } catch (e) {}
+  if (!r || !r.room || Date.now() - r.t > REJOIN_MS) { clearInRoom(); return; }
+  $('roomInput').value = r.room;
+  $('rejoinRoom').textContent = r.room;
+  $('rejoinBox').hidden = false;
+  $('rejoinBtn').onclick = () => { $('rejoinBox').hidden = true; joinCall(); };
+  $('rejoinNo').onclick = () => { $('rejoinBox').hidden = true; clearInRoom(); };
 }
 
 function showMediaBanner() {

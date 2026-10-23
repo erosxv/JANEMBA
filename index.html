@@ -18,7 +18,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>window.Peer || document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');</script>
-<link rel="stylesheet" href="app/estilo.css?v=1.19.3">
+<link rel="stylesheet" href="app/estilo.css?v=1.20.0">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -64,6 +64,11 @@
 <div id="joinScreen">
   <h1 class="brand"><svg class="brand-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true"><defs><clipPath id="czClipJoin"><rect x="6" y="6" width="52" height="44" rx="16"/></clipPath></defs><path d="M15 46 L11 59 L30 49 Z" fill="#00BDBD" stroke="#00BDBD" stroke-width="4" stroke-linejoin="round"/><g clip-path="url(#czClipJoin)"><rect x="6" y="6" width="52" height="15" fill="#00BDBD"/><rect x="6" y="20.67" width="52" height="14.66" fill="#F5C000"/><rect x="6" y="35.33" width="52" height="15" fill="#00BDBD"/><path d="M6 6 L33 28 L6 50 Z" fill="#05080A"/></g><rect x="6" y="6" width="52" height="44" rx="16" stroke="#3a474c" stroke-width="1.2"/></svg><span class="wordmark">Call<b>Zinha</b></span></h1>
   <p class="sub">Chamada em grupo por áudio, com tela compartilhada</p>
+  <div id="rejoinBox" class="card rejoin" hidden>
+    <p>A página recarregou no meio da chamada.</p>
+    <button id="rejoinBtn" class="btn-primary">Voltar para a sala <b id="rejoinRoom"></b></button>
+    <button id="rejoinNo" class="btn-ghost">Não, obrigado</button>
+  </div>
   <div class="card">
     <button id="avatarPick" class="avpick" type="button" title="Escolher avatar"><span id="avatarPreview" class="avprev"></span><span>Escolher avatar</span></button>
     <label for="nameInput">Seu nome</label>
@@ -290,12 +295,12 @@
   </div>
 </aside>
 
-<script src="app/1-inicio.js?v=1.19.3"></script>
-<script src="app/2-conexoes.js?v=1.19.3"></script>
-<script src="app/3-tela.js?v=1.19.3"></script>
-<script src="app/4-audio.js?v=1.19.3"></script>
-<script src="app/5-interface.js?v=1.19.3"></script>
-<script src="app/6-musica.js?v=1.19.3"></script>
-<script src="app/7-chat-extras.js?v=1.19.3"></script>
+<script src="app/1-inicio.js?v=1.20.0"></script>
+<script src="app/2-conexoes.js?v=1.20.0"></script>
+<script src="app/3-tela.js?v=1.20.0"></script>
+<script src="app/4-audio.js?v=1.20.0"></script>
+<script src="app/5-interface.js?v=1.20.0"></script>
+<script src="app/6-musica.js?v=1.20.0"></script>
+<script src="app/7-chat-extras.js?v=1.20.0"></script>
 </body>
 </html>

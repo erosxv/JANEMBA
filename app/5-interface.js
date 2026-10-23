@@ -463,6 +463,7 @@ $('setShortcutBtn').onclick = () => {
 // Estado inicial da tela de entrada: nome salvo e pré-carregamento do filtro de IA (não atrapalha a abertura da página)
 if (prefs.name) $('nameInput').value = prefs.name;
 try { const k = sessionStorage.getItem('cz-kicked'); if (k) { sessionStorage.removeItem('cz-kicked'); setStatus('O anfitrião tirou você da sala ' + k + '.'); } } catch (e) {}
+offerRejoin();
 if ((prefs.noise === 'ai' || prefs.noise === 'dfn') && workletSupported()) {
   const warm = () => { loadRnnoiseAssets().catch(() => {}); if (prefs.noise === 'dfn' && dfnSupported()) loadDfnAssets().catch(() => {}); };
   if (window.requestIdleCallback) requestIdleCallback(warm, { timeout: 3000 }); else setTimeout(warm, 1500);
