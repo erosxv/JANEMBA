@@ -415,6 +415,7 @@ function enterCallUI() {
   $('netBadge').style.display = 'none';
   applyLayout(); refreshShortcutLabels(); startStatsLoop();
   markInRoom(); setInterval(markInRoom, 20000);
+  startSoundKeys();
 }
 
 // Se a página recarregar no meio da chamada (no iPhone, quando falta memória, aparece "esta página foi recarregada"),

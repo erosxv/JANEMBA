@@ -1,5 +1,5 @@
 // App de desktop do CallZinha (Windows e Linux): abre o site que está em www/ numa janela própria.
-const { app, BrowserWindow, protocol, net, session, desktopCapturer, dialog, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, protocol, net, session, desktopCapturer, dialog, shell, ipcMain, globalShortcut } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
@@ -35,6 +35,8 @@ function createWindow() {
     }
   });
   win.loadURL('app://callzinha/index.html');
+  // a página (re)começou: os atalhos dos sons da página anterior deixam de valer até ela entrar na call de novo
+  win.webContents.on('did-navigate', () => globalShortcut.unregisterAll());   // só a página principal, não os players
 
   // Links externos abrem no navegador, não dentro do app
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -138,9 +140,23 @@ app.whenReady().then(() => {
     e.returnValue = /(^|\.)youtube(-nocookie)?\.com$/.test(host) ? noAds : '';
   });
 
+  // Atalhos dos sons do soundboard: valem no Windows/Linux inteiro, até com o CallZinha em segundo plano (jogando, por ex.).
+  // A página manda a lista de teclas; devolve as que deu para registrar (outro programa pode já estar usando alguma).
+  ipcMain.handle('cz-teclas', (e, lista) => {
+    if (!win || e.sender !== win.webContents || !e.senderFrame.url.startsWith('app://callzinha/')) return [];
+    globalShortcut.unregisterAll();
+    const ok = [];
+    for (const acc of (Array.isArray(lista) ? lista : []).slice(0, 60)) {
+      if (typeof acc !== 'string' || acc.length > 40) continue;
+      try { if (globalShortcut.register(acc, () => win && win.webContents.send('cz-tecla', acc))) ok.push(acc); } catch (err) {}
+    }
+    return ok;
+  });
+
   createWindow();
   setupAutoUpdate();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('will-quit', () => globalShortcut.unregisterAll());

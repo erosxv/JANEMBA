@@ -64,6 +64,11 @@
   .fx-sbtn:hover, .fx-sbtn:focus-visible { background: #2a2e38; border-color: #3a4050; outline: none; opacity: 1; }
   .fx-sbtn.playing { border-color: #3ddc97; box-shadow: inset 0 0 0 1px #3ddc97; }
   .fx-sec span { flex: 1; }
+  .fx-sbtn { position: relative; }
+  .fx-key { position: absolute; top: 2px; right: 3px; padding: 0 4px; border-radius: 4px; background: #33384a; color: #c9cdd3; font: 600 9px/14px ui-monospace, monospace; text-transform: none; }
+  .fx-sbtn.bind { border-style: dashed; border-color: #5b8cff; }
+  .fx-keysbtn { width: 100%; margin-top: 8px; }
+  .fx-bindhint { text-align: left; margin: 2px 2px 6px; color: #9fb4ff; }
   .fx-edit { background: none; color: #9aa0a6; font-size: 11.5px; padding: 2px 6px; border-radius: 6px; }
   .fx-edit:hover { color: #eaeaea; }
   .fx-sbtn.add { border-style: dashed; color: #9aa0a6; text-transform: none; }
@@ -244,7 +249,7 @@
       playBuffer(ctx, id, await urlBuffers[url]);
     } catch (e) {
       const a = new Audio(url); a.volume = volume();
-      const item = { _id: id, stop: () => { try { a.pause(); } catch (e2) {} done(); } };
+      const item = { _id: id, _vol: (v) => { a.volume = v; }, stop: () => { try { a.pause(); } catch (e2) {} done(); } };
       const cut = setTimeout(() => item.stop(), SB_MAX_S * 1000);
       const done = () => { if (!playing.delete(item)) return; clearTimeout(cut); markPlaying(); };
       a.onended = done; a.onerror = done;
@@ -255,7 +260,7 @@
   function playBuffer(ctx, id, buf) {
     const out = ctx.createGain(); out.gain.value = volume(); out.connect(ctx.destination);
     const src = ctx.createBufferSource(); src.buffer = buf; src.connect(out);
-    src._id = id; playing.add(src); markPlaying();
+    src._id = id; src._vol = (v) => { out.gain.value = v; }; playing.add(src); markPlaying();
     src.onended = () => { playing.delete(src); markPlaying(); try { out.disconnect(); } catch (e) {} };
     src.start(); src.stop(ctx.currentTime + SB_MAX_S);
   }
@@ -283,7 +288,10 @@
   function muted() { try { return localStorage.getItem('callzinha.fx.mute') === '1'; } catch (e) { return false; } }
   function setMuted(v) { try { localStorage.setItem('callzinha.fx.mute', v ? '1' : '0'); } catch (e) {} }
   function volume() { try { const v = localStorage.getItem('callzinha.fx.vol'); return v === null ? 0.5 : Math.min(1, Math.max(0, Number(v) || 0)); } catch (e) { return 0.5; } }
-  function setVolume(v) { try { localStorage.setItem('callzinha.fx.vol', String(v)); } catch (e) {} }
+  function setVolume(v) {
+    try { localStorage.setItem('callzinha.fx.vol', String(v)); } catch (e) {}
+    playing.forEach((p) => { try { p._vol(v); } catch (e) {} });   // muda também o que já está tocando
+  }
   // os que eu mais toco (só neste aparelho), para a seção "Usados com frequência"
   function usage() { try { return JSON.parse(localStorage.getItem('callzinha.fx.uso') || '{}') || {}; } catch (e) { return {}; } }
   function countUse(id) { try { const u = usage(); u[id] = (u[id] || 0) + 1; localStorage.setItem('callzinha.fx.uso', JSON.stringify(u)); } catch (e) {} }
@@ -336,9 +344,14 @@
       panel.append(h);
     }
     let editing = false;   // modo "Editar" dos meus sons: tocar no botão pergunta se quer excluir
+    let binding = false;   // modo "Atalhos": tocar no botão e apertar uma tecla
+    const keyOf = (id) => Object.keys(api.soundKeys()).find((k) => api.soundKeys()[k] === id) || '';
     function sbtn(s) {
       const b = el('button', 'fx-sbtn'); b.dataset.id = s.id; b.title = s.name + ' (todos ouvem)';
       b.append(el('span', 'em', s.em), el('span', '', s.name));
+      const k = keyOf(s.id);
+      if (k) { b.append(el('kbd', 'fx-key', api.shortcutLabel(k))); b.title += ' · tecla ' + api.shortcutLabel(k); }
+      if (binding) { b.classList.add('bind'); b.onclick = () => captureKey(s, b); return b; }
       if (editing && s.mine) {
         b.classList.add('del'); b.title = 'Excluir ' + s.name;
         b.onclick = () => {
@@ -357,9 +370,13 @@
       panel.replaceChildren(head('🔊 Sons', true));
       const mine = mySounds();
       if (!mine.length) editing = false;
+      if (binding) {
+        panel.append(el('div', 'fx-hint fx-bindhint', 'Toque num som e aperte a tecla (pode usar Ctrl, Alt ou Shift junto). Esc cancela, Backspace apaga o atalho.' +
+          (api.pcApp ? ' No app de PC funciona até jogando, mas a tecla deixa de digitar em outros programas durante a call: prefira o teclado numérico, F1–F12 ou Ctrl/Alt + tecla.' : ' Só funciona com o CallZinha na frente; no app de PC funciona até jogando.')));
+      }
       const all = mine.concat(files, SOUNDS);
       const u = usage();
-      const top = editing ? [] : all.filter((s) => u[s.id]).sort((a, b) => u[b.id] - u[a.id]).slice(0, 3);
+      const top = editing || binding ? [] : all.filter((s) => u[s.id]).sort((a, b) => u[b.id] - u[a.id]).slice(0, 3);
       const section = (title, list, extra) => {
         if (!list.length && !extra) return;
         const h = el('div', 'fx-sec'); h.append(el('span', '', title));
@@ -372,9 +389,9 @@
       section('🕘 Usados com frequência', top);
       const add = el('button', 'fx-sbtn add'); add.append(el('span', 'em', '＋'), el('span', '', 'Adicionar'));
       add.title = 'Adicionar um som pelo link'; add.onclick = addForm;
-      const ed = el('button', 'fx-edit', editing ? 'Pronto' : 'Editar'); ed.type = 'button'; ed.hidden = !mine.length;
-      ed.onclick = () => { editing = !editing; sounds(); };
-      section('⭐ Meus sons', mine, { head: ed, tile: editing ? null : add });
+      const ed = el('button', 'fx-edit', editing ? 'Pronto' : 'Editar'); ed.type = 'button'; ed.hidden = !mine.length || binding;
+      ed.onclick = () => { editing = !editing; binding = false; sounds(); };
+      if (mine.length || !binding) section('⭐ Meus sons', mine, { head: ed, tile: editing || binding ? null : add });
       if (editing) panel.append(el('div', 'fx-hint', 'Toque no som que quer excluir.'));
       section('🔊 Soundboard', files);
       section('✨ Sons do app', SOUNDS);
@@ -384,14 +401,44 @@
       const stop = el('button', 'fx-btn ghost', '⏹ Parar'); stop.type = 'button'; stop.title = 'Para os sons tocando agora (só para mim)'; stop.onclick = stopSounds;
       v.append(el('span', '', 'Volume'), rg, stop);
       panel.append(v);
+      const kb = el('button', 'fx-btn ghost fx-keysbtn', binding ? '✓ Pronto' : '⌨ Atalhos de teclado'); kb.type = 'button';
+      kb.onclick = () => { binding = !binding; editing = false; sounds(); };
+      panel.append(kb);
       const r = el('label', 'fx-row'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = muted();
       cb.onchange = () => setMuted(cb.checked);
       r.append(el('span', '', 'Silenciar os sons (só para mim)'), cb);
       panel.append(r);
       place();   // o painel ficou mais largo
     }
+    // espera a próxima tecla e liga ao som (uma tecla por som; a tecla sai de outro som que a usava)
+    function captureKey(s, b) {
+      const label = b.querySelector('span:last-of-type');
+      label.textContent = 'Aperte uma tecla…';
+      api.captureSoundKey(true);
+      const MODS = ['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
+      const stop = () => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('pointerdown', onAway, true); api.captureSoundKey(false); };
+      const onAway = (e) => { if (!b.contains(e.target)) { stop(); sounds(); } };
+      const onKey = (e) => {
+        if (MODS.includes(e.code)) return;
+        e.preventDefault(); e.stopPropagation();
+        if (e.code === 'Escape') { stop(); sounds(); return; }
+        const map = api.soundKeys();
+        for (const k in map) if (map[k] === s.id) delete map[k];
+        if (e.code !== 'Backspace' && e.code !== 'Delete') {
+          const k = api.shortcutFromEvent(e), why = api.reservedKey(k);
+          if (why) { api.toast('A tecla ' + api.shortcutLabel(k) + ' não dá: ' + why + '.'); return; }   // continua esperando outra tecla
+          if (map[k] && map[k] !== s.id) api.toast('A tecla ' + api.shortcutLabel(k) + ' passou para ' + s.name + '.');
+          map[k] = s.id;
+        }
+        stop();
+        api.setSoundKeys(map);
+        sounds();
+      };
+      document.addEventListener('keydown', onKey, true);
+      setTimeout(() => document.addEventListener('pointerdown', onAway, true), 0);
+    }
     function addForm() {
-      editing = false;
+      editing = false; binding = false;
       const h = head('⭐ Adicionar som', true); h.querySelector('button').onclick = sounds;
       panel.replaceChildren(h);
       const f = el('form', 'fx-form');

@@ -184,7 +184,7 @@ $('chatForm').onsubmit = (e) => {
 
 // ================= extras (sons, roleta, dado, moeda, enquete) =================
 // Tudo isso mora em extras/festa.js, que só é baixado quando alguém usa: quem só conversa não carrega nada a mais.
-const FX_VER = '7';
+const FX_VER = '8';
 const FX_COMMANDS = ['ajuda', 'dado', 'moeda', 'roleta', 'enquete', 'som'];
 const fxSeen = {};   // anfitrião: peerId -> último extra repassado (segura quem clica sem parar)
 const fxModules = {};
@@ -201,6 +201,58 @@ function loadModule(file, global) {
   return fxModules[file];
 }
 const loadExtras = () => loadModule('festa', 'CZFesta');
+
+// ---- atalhos de teclado dos sons (definidos em Extras → Sons → ⌨ Atalhos) ----
+// Ficam aqui, e não em extras/festa.js, para valer mesmo antes de alguém abrir os Extras.
+// No app de PC viram atalhos do sistema (funcionam jogando, com a janela em segundo plano); no site e no
+// Android, só com o CallZinha na frente.
+const SOUND_KEYS = 'callzinha.fx.teclas';   // { "ctrl+KeyA": "id-do-som" }
+function soundKeys() { try { const m = JSON.parse(localStorage.getItem(SOUND_KEYS) || '{}'); return m && typeof m === 'object' ? m : {}; } catch (e) { return {}; } }
+function setSoundKeys(m) { try { localStorage.setItem(SOUND_KEYS, JSON.stringify(m)); } catch (e) {} syncSoundKeys(); }
+// tecla que o app já usa: não dá para virar atalho de som
+function reservedKey(k) {
+  if (k === prefs.shortcut) return 'é o atalho de mutar';
+  if (['KeyF', 'Enter', 'Escape', 'Tab', 'Space', 'Backspace', 'Delete'].includes(k)) return 'o app já usa essa tecla';
+  const n = /^Digit(\d)$/.exec(k);
+  if (n && Number(n[1]) >= 1 && Number(n[1]) <= REACTIONS.length) return 'é das reações (' + REACTIONS[Number(n[1]) - 1] + ')';
+  return '';
+}
+// "ctrl+shift+KeyA" → "Control+Shift+A" (formato do Electron); null se o app de PC não aceitar essa tecla
+function toAccelerator(k) {
+  const p = parseShortcut(k);
+  const NAMES = { Space: 'Space', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Backslash: '\\', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/',
+    Backquote: '`', Insert: 'Insert', Delete: 'Delete', Home: 'Home', End: 'End', PageUp: 'PageUp', PageDown: 'PageDown', ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right',
+    NumpadAdd: 'numadd', NumpadSubtract: 'numsub', NumpadMultiply: 'nummult', NumpadDivide: 'numdiv', NumpadDecimal: 'numdec' };
+  let key = /^Key([A-Z])$/.test(p.code) ? p.code.slice(3) : /^Digit\d$/.test(p.code) ? p.code.slice(5) : /^F([1-9]|1\d|2[0-4])$/.test(p.code) ? p.code
+    : /^Numpad\d$/.test(p.code) ? 'num' + p.code.slice(6) : NAMES[p.code];
+  if (!key) return null;
+  return [p.ctrl ? 'Control' : '', p.alt ? 'Alt' : '', p.shift ? 'Shift' : '', p.meta ? 'Super' : '', key].filter(Boolean).join('+');
+}
+let globalSoundKeys = new Set();   // atalhos que o app de PC conseguiu registrar no sistema
+let soundKeysOn = false;           // só valem dentro da call
+function syncSoundKeys() {
+  if (!window.czTeclas) return;
+  const map = soundKeys(), accs = {};
+  if (soundKeysOn) for (const k in map) { const a = toAccelerator(k); if (a) accs[a] = k; }
+  window.czTeclas.definir(Object.keys(accs)).then((ok) => { globalSoundKeys = new Set((ok || []).map((a) => accs[a])); }).catch(() => {});
+}
+function startSoundKeys() { soundKeysOn = true; syncSoundKeys(); }
+function playKeySound(k) {
+  const id = soundKeys()[k];
+  if (!id || !peer || $('callScreen').offsetParent === null) return;
+  loadExtras().then((x) => x.command('som', id)).catch(() => {});
+}
+if (window.czTeclas) window.czTeclas.aoApertar((acc) => { for (const k in soundKeys()) if (toAccelerator(k) === acc) { playKeySound(k); return; } });
+let capturingSoundKey = false;
+document.addEventListener('keydown', (e) => {
+  if (e.repeat || capturingShortcut || capturingSoundKey) return;
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+  const k = shortcutFromEvent(e);
+  if (!soundKeys()[k] || globalSoundKeys.has(k)) return;   // no app de PC, quem toca é o atalho do sistema
+  e.preventDefault();
+  playKeySound(k);
+});
 const loadGames = () => loadModule('jogos', 'CZJogos');
 function addSysChat(text) {
   const m = { sys: true, text: cleanText(text), t: Date.now() };
@@ -219,6 +271,15 @@ const fxApi = {
   fetchVideoInfo: (id) => fetchVideoInfo(id),
   ensureYT: () => loadYTApi(),
   duckMusic: (on) => { musicDucked = !!on; applyMusicVolume(); },
+  soundKeys, setSoundKeys, reservedKey, shortcutFromEvent, shortcutLabel,
+  pcApp: !!window.czTeclas,
+  // enquanto espera a tecla nova, solta os atalhos do sistema (senão a tecla tocaria o som em vez de ser escolhida)
+  captureSoundKey: (on) => {
+    capturingSoundKey = !!on;
+    if (!window.czTeclas) return;
+    if (on) window.czTeclas.definir([]).then(() => { globalSoundKeys = new Set(); }).catch(() => {});
+    else syncSoundKeys();
+  },
   myId: () => (peer ? peer.id : 'local'),
   myName: () => myName,
   people: () => [{ id: peer ? peer.id : 'local', name: myName }].concat(Object.keys(remoteNames).filter(isPeerPresent).map((id) => ({ id, name: nameOf(id) }))),
@@ -459,7 +520,7 @@ window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // cel
 // O Android não deixa um app fora da Play Store se instalar sozinho: mostramos um aviso com o link do APK novo.
 // (No PC quem cuida disso é o próprio app, ver electron/main.js.)
 // Versão do CallZinha: sobe junto com o package.json a cada versão nova (o build dos apps confere e iguala)
-const APP_VERSION = '1.21.0';
+const APP_VERSION = '1.22.0';
 $('appVersion').textContent = 'v' + APP_VERSION + ' · ' + (window.Capacitor ? 'app Android' : location.protocol === 'app:' ? 'app de PC' : 'site');
 (function checkAndroidUpdate() {
   const C = window.Capacitor;
