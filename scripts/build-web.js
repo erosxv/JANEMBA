@@ -5,7 +5,7 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 const out = path.join(root, 'www');
-const FILES = ['index.html', 'app', 'manifest.webmanifest', 'sw.js', 'icons', 'extras', 'yt-noads.js'];
+const FILES = ['index.html', 'app', 'manifest.webmanifest', 'sw.js', 'icons', 'extras', 'sons', 'yt-noads.js'];
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);

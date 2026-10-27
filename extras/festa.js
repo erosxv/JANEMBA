@@ -54,6 +54,23 @@
   .fx-poll .foot button { background: none; color: #ff8a8d; font-size: 11px; padding: 2px 4px; }
   .fx-poll.ended .fx-opt { cursor: default; }
   body.v-live:not(.theater-open) .fx-poll { top: 10px; }
+  .fx-sec { display: flex; align-items: center; gap: 6px; margin: 10px 2px 6px; color: #9aa0a6; font-size: 12px; font-weight: 600; }
+  .fx-sec:first-of-type { margin-top: 2px; }
+  .fx-sb { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .fx-sbtn { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; padding: 10px 6px; border-radius: 9px; border: 1px solid #2a2e37; background: #22252d; color: #eaeaea; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .fx-panel.fx-wide { width: min(470px, calc(100vw - 24px)); }
+  .fx-sbtn span:last-child { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; line-height: 1.2; }
+  .fx-sbtn .em { font-size: 16px; line-height: 1; flex: none; }
+  .fx-sbtn:hover, .fx-sbtn:focus-visible { background: #2a2e38; border-color: #3a4050; outline: none; opacity: 1; }
+  .fx-sbtn.playing { border-color: #3ddc97; box-shadow: inset 0 0 0 1px #3ddc97; }
+  .fx-sec span { flex: 1; }
+  .fx-edit { background: none; color: #9aa0a6; font-size: 11.5px; padding: 2px 6px; border-radius: 6px; }
+  .fx-edit:hover { color: #eaeaea; }
+  .fx-sbtn.add { border-style: dashed; color: #9aa0a6; text-transform: none; }
+  .fx-sbtn.del { border-color: #7a3a3d; background: #2a1d20; }
+  .fx-sbtn.del::after { content: '✕'; color: #ff8a8d; font-size: 12px; flex: none; }
+  .fx-vol { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: #9aa0a6; font-size: 12px; }
+  .fx-vol input[type=range] { flex: 1; min-width: 0; }
   #extrasBtn.loading .ic { animation: fxPulse .8s ease-in-out infinite; }
   @keyframes fxPulse { 50% { opacity: .35; } }
   @media (prefers-reduced-motion: reduce) { .fx-card, .fx-card .big, .fx-panel, .fx-poll { animation: none !important; } }
@@ -132,17 +149,144 @@
       [523, 659, 784, 1047].forEach((hz) => tone(ctx, out, 'triangle', hz, 0, t + 0.3, 1.0, 0.22));
     },
   };
-  function playSound(api, id) {
-    if (!SYNTH[id] || muted()) return;
+  // ---------------- soundboard (arquivos de áudio em sons/, listados em sons/sons.json) ----------------
+  // A lista vem primeiro do site: assim um som novo aparece até para quem usa o app de PC/Android sem atualizar.
+  // Cada pessoa toca o arquivo no próprio aparelho (ninguém transmite o som pelo microfone).
+  const SITE = 'https://erosxv.github.io/JANEMBA/';
+  const SB_BASES = location.href.startsWith(SITE) ? ['sons/'] : [SITE + 'sons/', 'sons/'];
+  const SB_MAX_S = 15;          // som comprido para sozinho depois disso
+  let fileSounds = null;        // Promise<[{ id, name, em, url }]>
+  function loadFileSounds() {
+    if (!fileSounds) {
+      fileSounds = (async () => {
+        for (const base of SB_BASES) {
+          try {
+            const r = await fetch(base + 'sons.json', { cache: 'no-cache' });
+            if (!r.ok) continue;
+            const list = await r.json();
+            return list.filter((x) => x && /^[a-z0-9-]{1,30}$/.test(x.id) && typeof x.arquivo === 'string' && !/[\\/]/.test(x.arquivo))
+              .map((x) => ({ id: x.id, name: String(x.nome || x.id).slice(0, 24), em: String(x.emoji || '🔊').slice(0, 4), url: base + encodeURIComponent(x.arquivo) }));
+          } catch (e) {}
+        }
+        return [];
+      })();
+      fileSounds.then((l) => { if (!l.length) fileSounds = null; });
+    }
+    return fileSounds;
+  }
+  const buffers = {};           // id -> Promise<AudioBuffer>
+  const playing = new Set();    // fontes tocando agora (para o botão Parar)
+  function fileBuffer(ctx, s) {
+    if (!buffers[s.id]) {
+      buffers[s.id] = fetch(s.url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then((b) => new Promise((ok, fail) => ctx.decodeAudioData(b, ok, fail)));
+      buffers[s.id].catch(() => { delete buffers[s.id]; });
+    }
+    return buffers[s.id];
+  }
+  async function findSound(id) {
+    const syn = SOUNDS.find((x) => x.id === id);
+    if (syn) return syn;
+    const mine = mySounds().find((x) => x.id === id);
+    if (mine) return mine;
+    return (await loadFileSounds()).find((x) => x.id === id) || null;
+  }
+
+  // ---------------- meus sons: adicionados por link, guardados só neste aparelho ----------------
+  // Quem toca manda o link junto na mensagem, e cada pessoa baixa e toca aquele link no próprio aparelho.
+  const MY_KEY = 'callzinha.fx.meus', MY_MAX = 60;
+  function mySounds() {
+    try {
+      const l = JSON.parse(localStorage.getItem(MY_KEY) || '[]');
+      return Array.isArray(l) ? l.filter((s) => s && /^u-[a-z0-9]+$/.test(s.id) && s.url).map((s) => ({ id: s.id, name: s.name, em: s.em, url: s.url, mine: true })) : [];
+    }
+    catch (e) { return []; }
+  }
+  function emoji(t) { return Array.from(String(t || '').trim()).slice(0, 3).join(''); }
+  function nameFromUrl(url) {
+    try { const f = decodeURIComponent(new URL(url).pathname.split('/').pop() || '').replace(/\.[a-z0-9]{2,4}$/i, '').replace(/[-_]+/g, ' ').trim(); return f.slice(0, 24) || 'Som'; }
+    catch (e) { return 'Som'; }
+  }
+  function saveMySounds(l) { try { localStorage.setItem(MY_KEY, JSON.stringify(l)); return true; } catch (e) { return false; } }
+  // link de compartilhamento (Google Drive, Dropbox) → link direto do arquivo; só https
+  function directUrl(raw) {
+    let u; try { u = new URL(String(raw).trim()); } catch (e) { return null; }
+    if (u.protocol !== 'https:') return null;
+    const drive = /^\/file\/d\/([\w-]+)/.exec(u.pathname);
+    if (/(^|\.)drive\.google\.com$/.test(u.hostname) && (drive || u.searchParams.get('id'))) return 'https://drive.google.com/uc?export=download&id=' + (drive ? drive[1] : u.searchParams.get('id'));
+    if (/(^|\.)dropbox\.com$/.test(u.hostname)) { u.searchParams.delete('dl'); u.searchParams.set('raw', '1'); }
+    const s = u.toString();
+    return s.length <= 600 ? s : null;
+  }
+  // confere se o link toca: resolve com a duração em segundos
+  function probeUrl(url) {
+    return new Promise((ok, fail) => {
+      const a = new Audio(); a.preload = 'metadata';
+      const t = setTimeout(() => { fail(new Error('demorou')); a.removeAttribute('src'); }, 12000);
+      a.onloadedmetadata = () => { clearTimeout(t); ok(a.duration); a.removeAttribute('src'); };
+      a.onerror = () => { clearTimeout(t); fail(new Error('não toca')); };
+      a.src = url;
+    });
+  }
+  // Baixa e toca pelo áudio do app quando o site deixa (o iPhone exige isso para tocar sem toque na tela);
+  // se o site não deixa baixar (CORS), toca o link direto num <audio>.
+  const urlBuffers = {};   // link -> Promise<AudioBuffer>
+  async function playUrl(api, id, url) {
+    if (muted()) return;
+    const ctx = api.getAudioCtx();
+    try {
+      if (!ctx) throw new Error('sem áudio');
+      if (!urlBuffers[url]) {
+        urlBuffers[url] = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+          .then((b) => new Promise((ok, fail) => ctx.decodeAudioData(b, ok, fail)));
+        urlBuffers[url].catch(() => {});
+      }
+      playBuffer(ctx, id, await urlBuffers[url]);
+    } catch (e) {
+      const a = new Audio(url); a.volume = volume();
+      const item = { _id: id, stop: () => { try { a.pause(); } catch (e2) {} done(); } };
+      const cut = setTimeout(() => item.stop(), SB_MAX_S * 1000);
+      const done = () => { if (!playing.delete(item)) return; clearTimeout(cut); markPlaying(); };
+      a.onended = done; a.onerror = done;
+      playing.add(item); markPlaying();
+      a.play().catch(done);
+    }
+  }
+  function playBuffer(ctx, id, buf) {
+    const out = ctx.createGain(); out.gain.value = volume(); out.connect(ctx.destination);
+    const src = ctx.createBufferSource(); src.buffer = buf; src.connect(out);
+    src._id = id; playing.add(src); markPlaying();
+    src.onended = () => { playing.delete(src); markPlaying(); try { out.disconnect(); } catch (e) {} };
+    src.start(); src.stop(ctx.currentTime + SB_MAX_S);
+  }
+
+  async function playSound(api, id) {
+    if (muted()) return;
     try {
       const ctx = api.getAudioCtx(); if (!ctx) return;
-      const out = ctx.createGain(); out.gain.value = 0.22; out.connect(ctx.destination);
-      SYNTH[id](ctx, out, ctx.currentTime + 0.02);
-      setTimeout(() => { try { out.disconnect(); } catch (e) {} }, 4000);
+      if (SYNTH[id]) {
+        const out = ctx.createGain(); out.gain.value = 0.44 * volume(); out.connect(ctx.destination);
+        SYNTH[id](ctx, out, ctx.currentTime + 0.02);
+        setTimeout(() => { try { out.disconnect(); } catch (e) {} }, 4000);
+        return;
+      }
+      const s = await findSound(id); if (!s) return;
+      if (s.mine) { playUrl(api, id, s.url); return; }
+      playBuffer(ctx, id, await fileBuffer(ctx, s));
     } catch (e) {}
+  }
+  function stopSounds() { playing.forEach((src) => { try { src.stop(); } catch (e) {} }); }
+  function markPlaying() {
+    const on = new Set([...playing].map((x) => x._id));
+    document.querySelectorAll('.fx-sbtn[data-id]').forEach((b) => b.classList.toggle('playing', on.has(b.dataset.id)));
   }
   function muted() { try { return localStorage.getItem('callzinha.fx.mute') === '1'; } catch (e) { return false; } }
   function setMuted(v) { try { localStorage.setItem('callzinha.fx.mute', v ? '1' : '0'); } catch (e) {} }
+  function volume() { try { const v = localStorage.getItem('callzinha.fx.vol'); return v === null ? 0.5 : Math.min(1, Math.max(0, Number(v) || 0)); } catch (e) { return 0.5; } }
+  function setVolume(v) { try { localStorage.setItem('callzinha.fx.vol', String(v)); } catch (e) {} }
+  // os que eu mais toco (só neste aparelho), para a seção "Usados com frequência"
+  function usage() { try { return JSON.parse(localStorage.getItem('callzinha.fx.uso') || '{}') || {}; } catch (e) { return {}; } }
+  function countUse(id) { try { const u = usage(); u[id] = (u[id] || 0) + 1; localStorage.setItem('callzinha.fx.uso', JSON.stringify(u)); } catch (e) {} }
 
   // ---------------- utilidades ----------------
   function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -176,6 +320,7 @@
       b.onclick = fn; return b;
     }
     function home() {
+      panel.classList.remove('fx-wide');
       panel.replaceChildren(head('✨ Extras'));
       const g = el('div', 'fx-grid');
       g.append(
@@ -190,15 +335,95 @@
       const h = el('div', 'fx-hint'); h.append('Dica: no chat, digite ', el('code', '', '/ajuda'));
       panel.append(h);
     }
-    function sounds() {
+    let editing = false;   // modo "Editar" dos meus sons: tocar no botão pergunta se quer excluir
+    function sbtn(s) {
+      const b = el('button', 'fx-sbtn'); b.dataset.id = s.id; b.title = s.name + ' (todos ouvem)';
+      b.append(el('span', 'em', s.em), el('span', '', s.name));
+      if (editing && s.mine) {
+        b.classList.add('del'); b.title = 'Excluir ' + s.name;
+        b.onclick = () => {
+          if (!confirm('Excluir o som "' + s.name + '"?')) return;
+          saveMySounds(mySounds().filter((x) => x.id !== s.id));
+          sounds();
+        };
+      } else b.onclick = () => som(s.id);
+      return b;
+    }
+    async function sounds() {
+      panel.classList.add('fx-wide');
       panel.replaceChildren(head('🔊 Sons', true));
-      const g = el('div', 'fx-grid');
-      SOUNDS.forEach((s) => g.append(tile(s.em, s.name, '', () => som(s.id))));
-      panel.append(g);
+      const files = await loadFileSounds();
+      if (panel.hidden) return;
+      panel.replaceChildren(head('🔊 Sons', true));
+      const mine = mySounds();
+      if (!mine.length) editing = false;
+      const all = mine.concat(files, SOUNDS);
+      const u = usage();
+      const top = editing ? [] : all.filter((s) => u[s.id]).sort((a, b) => u[b.id] - u[a.id]).slice(0, 3);
+      const section = (title, list, extra) => {
+        if (!list.length && !extra) return;
+        const h = el('div', 'fx-sec'); h.append(el('span', '', title));
+        if (extra && extra.head) h.append(extra.head);
+        panel.append(h);
+        const g = el('div', 'fx-sb'); list.forEach((s) => g.append(sbtn(s)));
+        if (extra && extra.tile) g.append(extra.tile);
+        panel.append(g);
+      };
+      section('🕘 Usados com frequência', top);
+      const add = el('button', 'fx-sbtn add'); add.append(el('span', 'em', '＋'), el('span', '', 'Adicionar'));
+      add.title = 'Adicionar um som pelo link'; add.onclick = addForm;
+      const ed = el('button', 'fx-edit', editing ? 'Pronto' : 'Editar'); ed.type = 'button'; ed.hidden = !mine.length;
+      ed.onclick = () => { editing = !editing; sounds(); };
+      section('⭐ Meus sons', mine, { head: ed, tile: editing ? null : add });
+      if (editing) panel.append(el('div', 'fx-hint', 'Toque no som que quer excluir.'));
+      section('🔊 Soundboard', files);
+      section('✨ Sons do app', SOUNDS);
+      markPlaying();
+      const v = el('div', 'fx-vol'); const rg = el('input'); rg.type = 'range'; rg.min = 0; rg.max = 100; rg.value = Math.round(volume() * 100);
+      rg.setAttribute('aria-label', 'Volume dos sons'); rg.oninput = () => setVolume(rg.value / 100);
+      const stop = el('button', 'fx-btn ghost', '⏹ Parar'); stop.type = 'button'; stop.title = 'Para os sons tocando agora (só para mim)'; stop.onclick = stopSounds;
+      v.append(el('span', '', 'Volume'), rg, stop);
+      panel.append(v);
       const r = el('label', 'fx-row'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = muted();
       cb.onchange = () => setMuted(cb.checked);
       r.append(el('span', '', 'Silenciar os sons (só para mim)'), cb);
       panel.append(r);
+      place();   // o painel ficou mais largo
+    }
+    function addForm() {
+      editing = false;
+      const h = head('⭐ Adicionar som', true); h.querySelector('button').onclick = sounds;
+      panel.replaceChildren(h);
+      const f = el('form', 'fx-form');
+      const link = el('input'); link.type = 'text'; link.inputMode = 'url'; link.required = true; link.placeholder = 'Link do áudio (.mp3, Google Drive, Dropbox...)';
+      const nome = el('input'); nome.type = 'text'; nome.maxLength = 24; nome.placeholder = 'Nome do botão (ex.: ATUMALACA)';
+      const emo = el('input'); emo.type = 'text'; emo.maxLength = 8; emo.placeholder = 'Emoji (opcional)';
+      const st = el('div', 'fx-hint', 'Use o link que abre direto o arquivo de áudio. O som fica salvo neste aparelho e, quando você toca, todos da sala ouvem.');
+      st.style.textAlign = 'left';
+      const acts = el('div', 'fx-actions'); const go = el('button', 'fx-btn', 'Adicionar'); go.type = 'submit'; acts.append(go);
+      f.append(link, nome, emo, acts, st);
+      f.onsubmit = async (e) => {
+        e.preventDefault();
+        const url = directUrl(link.value);
+        if (!url) { st.textContent = 'Esse link não serve: ele precisa começar com https://'; return; }
+        if (mySounds().length >= MY_MAX) { st.textContent = 'Você já tem ' + MY_MAX + ' sons. Exclua algum antes.'; return; }
+        go.disabled = true; go.textContent = 'Testando o link...';
+        let dur = 0;
+        try { dur = await probeUrl(url); }
+        catch (err) {
+          st.textContent = 'Não consegui tocar esse link. Ele precisa abrir direto o arquivo de áudio (um .mp3, por exemplo), e não uma página com o som dentro.';
+          go.disabled = false; go.textContent = 'Adicionar'; return;
+        }
+        const name = api.cleanText(nome.value).slice(0, 24) || nameFromUrl(url);
+        const em = emoji(emo.value) || '🔊';
+        const l = mySounds().map((x) => ({ id: x.id, name: x.name, em: x.em, url: x.url }));
+        l.push({ id: 'u-' + uid(), name, em, url });
+        if (!saveMySounds(l)) { st.textContent = 'Não deu para salvar neste aparelho.'; go.disabled = false; go.textContent = 'Adicionar'; return; }
+        api.toast(em + ' ' + name + ' adicionado' + (dur > SB_MAX_S ? ' (toca só os primeiros ' + SB_MAX_S + ' s)' : ''));
+        sounds();
+      };
+      panel.append(f);
+      setTimeout(() => link.focus(), 0);
     }
     function pollForm() {
       panel.replaceChildren(head('📊 Nova enquete', true));
@@ -259,13 +484,15 @@
       lastSend = now; return true;
     }
 
-    function som(id) {
-      if (!SYNTH[id]) { api.toast('Esse som não existe. Tem: ' + SOUNDS.map((s) => s.id).join(', ')); return; }
+    async function som(id) {
+      const s = await findSound(id);
+      if (!s) { const l = (await loadFileSounds()).concat(SOUNDS); api.toast('Esse som não existe. Tem: ' + l.map((x) => x.id).join(', ')); return; }
       if (!canSend()) return;
       playSound(api, id);
-      const s = SOUNDS.find((x) => x.id === id);
+      countUse(id);
       api.toast(s.em + ' ' + s.name);
-      api.send({ k: 'som', s: id });
+      // som meu (por link): vai o link, o nome e o emoji, porque os outros não têm ele salvo
+      api.send(s.mine ? { k: 'som', s: id, u: s.url, n: s.name, e: s.em } : { k: 'som', s: id });
     }
     function dado(arg) {
       let sides = parseInt(arg, 10);
@@ -432,11 +659,20 @@
     function receive(from, m) {
       const name = api.nameOf(from);
       if (m.k === 'som') {
-        if (!SYNTH[m.s]) return;
+        if (typeof m.s !== 'string') return;
         const now = Date.now(); if (now - (lastFrom[from] || 0) < 700) return; lastFrom[from] = now;
-        const s = SOUNDS.find((x) => x.id === m.s);
-        playSound(api, m.s);
-        api.toast(s.em + ' ' + name + ': ' + s.name);
+        if (typeof m.u === 'string') {
+          if (!/^u-[a-z0-9]{1,30}$/.test(m.s) || directUrl(m.u) !== m.u) return;
+          const n = api.cleanText(m.n).slice(0, 24) || 'Som', e = emoji(m.e) || '🔊';
+          playUrl(api, m.s, m.u);
+          api.toast(e + ' ' + name + ': ' + n);
+          return;
+        }
+        findSound(m.s).then((s) => {
+          if (!s) return;
+          playSound(api, m.s);
+          api.toast(s.em + ' ' + name + ': ' + s.name);
+        });
       } else if (m.k === 'dado') {
         const d = m.d, n = m.n;
         if (!Number.isInteger(d) || d < 2 || d > 100 || !Number.isInteger(n) || n < 1 || n > d) return;

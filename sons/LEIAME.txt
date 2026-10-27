@@ -1,0 +1,14 @@
+Soundboard do CallZinha (Extras → Sons)
+
+Para pôr um som novo:
+1. Coloque o arquivo de áudio nesta pasta (mp3, ogg, wav ou m4a; de preferência curto e com menos de 500 KB).
+2. Acrescente uma linha em sons.json, por exemplo:
+   { "id": "atumalaca", "nome": "ATUMALACA", "emoji": "🥰", "arquivo": "atumalaca.mp3" }
+   - id: só letras minúsculas, números e hífen (é o que vai no comando /som atumalaca)
+   - nome: o texto do botão
+   - emoji: o ícone do botão
+   - arquivo: o nome do arquivo nesta pasta
+
+O site lê esta lista, e os apps de PC e Android também a buscam no site. Por isso um som novo aparece para
+todo mundo assim que o site é atualizado, sem precisar de versão nova dos apps.
+Sons com mais de 15 segundos são cortados.
