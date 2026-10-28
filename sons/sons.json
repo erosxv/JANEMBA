@@ -1,3 +1,6 @@
 [
-  { "id": "no-no-wait", "nome": "NO NO WAIT", "emoji": "✋", "arquivo": "no-no-wait.mp3" }
+  { "id": "no-no-wait", "nome": "NO NO WAIT", "emoji": "✋", "arquivo": "no-no-wait.mp3" },
+  { "id": "super-idol", "nome": "SUPER IDOL", "emoji": "🎤", "arquivo": "super-idol.mp3" },
+  { "id": "risada-peludao", "nome": "RISADA DO PELUDÃO", "emoji": "😂", "arquivo": "risada-peludao.mp3" },
+  { "id": "ser-bandido", "nome": "SER BANDIDO É BOM DEMAIS", "emoji": "😎", "arquivo": "ser-bandido.mp3" }
 ]

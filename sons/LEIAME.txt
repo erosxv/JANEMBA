@@ -11,4 +11,4 @@ Para pôr um som novo:
 
 O site lê esta lista, e os apps de PC e Android também a buscam no site. Por isso um som novo aparece para
 todo mundo assim que o site é atualizado, sem precisar de versão nova dos apps.
-Sons com mais de 15 segundos são cortados.
+Sons com mais de 20 segundos são cortados.

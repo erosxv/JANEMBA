@@ -162,7 +162,7 @@
   // Cada pessoa toca o arquivo no próprio aparelho (ninguém transmite o som pelo microfone).
   const SITE = 'https://erosxv.github.io/JANEMBA/';
   const SB_BASES = location.href.startsWith(SITE) ? ['sons/'] : [SITE + 'sons/', 'sons/'];
-  const SB_MAX_S = 15;          // som comprido para sozinho depois disso
+  const SB_MAX_S = 20;          // som comprido para sozinho depois disso
   let fileSounds = null;        // Promise<[{ id, name, em, url }]>
   function loadFileSounds() {
     if (!fileSounds) {
