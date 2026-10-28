@@ -184,7 +184,7 @@ $('chatForm').onsubmit = (e) => {
 
 // ================= extras (sons, roleta, dado, moeda, enquete) =================
 // Tudo isso mora em extras/festa.js, que só é baixado quando alguém usa: quem só conversa não carrega nada a mais.
-const FX_VER = '8';
+const FX_VER = '9';
 const FX_COMMANDS = ['ajuda', 'dado', 'moeda', 'roleta', 'enquete', 'som'];
 const fxSeen = {};   // anfitrião: peerId -> último extra repassado (segura quem clica sem parar)
 const fxModules = {};
@@ -208,7 +208,7 @@ const loadExtras = () => loadModule('festa', 'CZFesta');
 // Android, só com o CallZinha na frente.
 const SOUND_KEYS = 'callzinha.fx.teclas';   // { "ctrl+KeyA": "id-do-som" }
 function soundKeys() { try { const m = JSON.parse(localStorage.getItem(SOUND_KEYS) || '{}'); return m && typeof m === 'object' ? m : {}; } catch (e) { return {}; } }
-function setSoundKeys(m) { try { localStorage.setItem(SOUND_KEYS, JSON.stringify(m)); } catch (e) {} syncSoundKeys(); }
+function setSoundKeys(m) { try { localStorage.setItem(SOUND_KEYS, JSON.stringify(m)); } catch (e) {} return syncSoundKeys(); }
 // tecla que o app já usa: não dá para virar atalho de som
 function reservedKey(k) {
   if (k === prefs.shortcut) return 'é o atalho de mutar';
@@ -230,11 +230,21 @@ function toAccelerator(k) {
 }
 let globalSoundKeys = new Set();   // atalhos que o app de PC conseguiu registrar no sistema
 let soundKeysOn = false;           // só valem dentro da call
+const warnedKeys = new Set();      // tecla que não deu para registrar: avisa uma vez
+// a pessoa pode desligar o "segundo plano": aí a tecla só vale com o CallZinha na frente e não é tirada dos outros programas
+function soundKeysGlobal() { try { return localStorage.getItem('callzinha.fx.teclas.global') !== '0'; } catch (e) { return true; } }
+function setSoundKeysGlobal(on) { try { localStorage.setItem('callzinha.fx.teclas.global', on ? '1' : '0'); } catch (e) {} return syncSoundKeys(); }
 function syncSoundKeys() {
-  if (!window.czTeclas) return;
+  if (!window.czTeclas) return Promise.resolve();
   const map = soundKeys(), accs = {};
-  if (soundKeysOn) for (const k in map) { const a = toAccelerator(k); if (a) accs[a] = k; }
-  window.czTeclas.definir(Object.keys(accs)).then((ok) => { globalSoundKeys = new Set((ok || []).map((a) => accs[a])); }).catch(() => {});
+  if (soundKeysOn && soundKeysGlobal()) for (const k in map) { const a = toAccelerator(k); if (a) accs[a] = k; }
+  return window.czTeclas.definir(Object.keys(accs)).then((ok) => {
+    globalSoundKeys = new Set((ok || []).map((a) => accs[a]));
+    if (!soundKeysOn || !soundKeysGlobal()) return;
+    const bad = Object.keys(map).filter((k) => !globalSoundKeys.has(k) && !warnedKeys.has(k));
+    bad.forEach((k) => warnedKeys.add(k));
+    if (bad.length) notify('⌨ ' + bad.map(shortcutLabel).join(', ') + ': essa tecla só funciona com o CallZinha na frente (outro programa, como o Discord, já usa ela, ou o teclado não deixa). Para funcionar jogando, escolha outra: F1–F12, teclado numérico ou Ctrl/Alt + tecla.', true);
+  }).catch(() => {});
 }
 function startSoundKeys() { soundKeysOn = true; syncSoundKeys(); }
 function playKeySound(k) {
@@ -273,6 +283,9 @@ const fxApi = {
   duckMusic: (on) => { musicDucked = !!on; applyMusicVolume(); },
   soundKeys, setSoundKeys, reservedKey, shortcutFromEvent, shortcutLabel,
   pcApp: !!window.czTeclas,
+  soundKeysGlobal, setSoundKeysGlobal,
+  isGlobalKey: (k) => globalSoundKeys.has(k),
+  syncSoundKeys,
   // enquanto espera a tecla nova, solta os atalhos do sistema (senão a tecla tocaria o som em vez de ser escolhida)
   captureSoundKey: (on) => {
     capturingSoundKey = !!on;
@@ -520,7 +533,7 @@ window.addEventListener('pagehide', () => { if (peer) peer.destroy(); }); // cel
 // O Android não deixa um app fora da Play Store se instalar sozinho: mostramos um aviso com o link do APK novo.
 // (No PC quem cuida disso é o próprio app, ver electron/main.js.)
 // Versão do CallZinha: sobe junto com o package.json a cada versão nova (o build dos apps confere e iguala)
-const APP_VERSION = '1.22.0';
+const APP_VERSION = '1.23.0';
 $('appVersion').textContent = 'v' + APP_VERSION + ' · ' + (window.Capacitor ? 'app Android' : location.protocol === 'app:' ? 'app de PC' : 'site');
 (function checkAndroidUpdate() {
   const C = window.Capacitor;

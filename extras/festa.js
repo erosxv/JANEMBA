@@ -66,6 +66,9 @@
   .fx-sec span { flex: 1; }
   .fx-sbtn { position: relative; }
   .fx-key { position: absolute; top: 2px; right: 3px; padding: 0 4px; border-radius: 4px; background: #33384a; color: #c9cdd3; font: 600 9px/14px ui-monospace, monospace; text-transform: none; }
+  .fx-key.off { text-decoration: line-through; color: #ff8a8d; }
+  .fx-global { margin: 0 2px 8px; align-items: flex-start; text-align: left; line-height: 1.35; }
+  .fx-global input { margin-top: 2px; flex: none; }
   .fx-sbtn.bind { border-style: dashed; border-color: #5b8cff; }
   .fx-keysbtn { width: 100%; margin-top: 8px; }
   .fx-bindhint { text-align: left; margin: 2px 2px 6px; color: #9fb4ff; }
@@ -350,7 +353,11 @@
       const b = el('button', 'fx-sbtn'); b.dataset.id = s.id; b.title = s.name + ' (todos ouvem)';
       b.append(el('span', 'em', s.em), el('span', '', s.name));
       const k = keyOf(s.id);
-      if (k) { b.append(el('kbd', 'fx-key', api.shortcutLabel(k))); b.title += ' · tecla ' + api.shortcutLabel(k); }
+      if (k) {
+        const kb = el('kbd', 'fx-key', api.shortcutLabel(k)); b.append(kb); b.title += ' · tecla ' + api.shortcutLabel(k);
+        // app de PC: tecla que não deu para registrar no sistema só vale com a janela na frente
+        if (api.pcApp && api.soundKeysGlobal() && !api.isGlobalKey(k)) { kb.classList.add('off'); b.title += ' (só com o CallZinha na frente)'; }
+      }
       if (binding) { b.classList.add('bind'); b.onclick = () => captureKey(s, b); return b; }
       if (editing && s.mine) {
         b.classList.add('del'); b.title = 'Excluir ' + s.name;
@@ -372,7 +379,13 @@
       if (!mine.length) editing = false;
       if (binding) {
         panel.append(el('div', 'fx-hint fx-bindhint', 'Toque num som e aperte a tecla (pode usar Ctrl, Alt ou Shift junto). Esc cancela, Backspace apaga o atalho.' +
-          (api.pcApp ? ' No app de PC funciona até jogando, mas a tecla deixa de digitar em outros programas durante a call: prefira o teclado numérico, F1–F12 ou Ctrl/Alt + tecla.' : ' Só funciona com o CallZinha na frente; no app de PC funciona até jogando.')));
+          (api.pcApp ? '' : ' Só funciona com o CallZinha na frente; no app de PC funciona até jogando.')));
+        if (api.pcApp) {
+          const g = el('label', 'fx-row fx-global'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = api.soundKeysGlobal();
+          cb.onchange = () => api.setSoundKeysGlobal(cb.checked).then(sounds);
+          g.append(el('span', '', 'Funcionar em segundo plano (jogando). A tecla para de digitar em outros programas durante a call: prefira F1–F12, teclado numérico ou Ctrl/Alt + tecla. Tecla riscada = só com o CallZinha na frente.'), cb);
+          panel.append(g);
+        }
       }
       const all = mine.concat(files, SOUNDS);
       const u = usage();
@@ -431,8 +444,7 @@
           map[k] = s.id;
         }
         stop();
-        api.setSoundKeys(map);
-        sounds();
+        api.setSoundKeys(map).then(sounds);
       };
       document.addEventListener('keydown', onKey, true);
       setTimeout(() => document.addEventListener('pointerdown', onAway, true), 0);

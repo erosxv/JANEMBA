@@ -235,6 +235,9 @@ async function buildDiagText() {
     ' · portão ' + (prefs.gateOn ? prefs.gateThr + ' dB' : 'desligado'));
   if (audioCtx) L.push('Áudio: ' + audioCtx.sampleRate + ' Hz · ' + audioCtx.state + ' · latência ' + num((audioCtx.baseLatency || 0) * 1000, 0, ' ms') + ' + saída ' + num((audioCtx.outputLatency || 0) * 1000, 0, ' ms'));
   L.push('TURN: ' + turnInfo + (sharingScreen ? ' · você está compartilhando a tela (upload informado: ' + prefs.upload + ' Mbps)' : ''));
+  const sk = Object.keys(soundKeys());
+  if (sk.length) L.push('Atalhos de sons: ' + sk.map((k) => shortcutLabel(k) + (window.czTeclas ? (globalSoundKeys.has(k) ? ' (segundo plano: sim)' : ' (segundo plano: não)') : '')).join(', ') +
+    (window.czTeclas ? (soundKeysGlobal() ? '' : ' · segundo plano desligado') : ' · só com a janela na frente (site/celular)'));
   let out = lastStats && Date.now() - lastStats.t < 6000 ? lastStats.out : null;
   if (!out) {
     const ids = Object.keys(calls), res = await Promise.all(ids.map(collectStats));
