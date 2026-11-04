@@ -38,6 +38,14 @@ function createWindow() {
   // a página (re)começou: os atalhos dos sons da página anterior deixam de valer até ela entrar na call de novo
   win.webContents.on('did-navigate', () => globalShortcut.unregisterAll());   // só a página principal, não os players
 
+  // Diagnóstico (só com CZ_DEBUG=1): mostra no terminal o que o limpador de anúncios registra dentro dos players do YouTube
+  if (process.env.CZ_DEBUG) {
+    win.webContents.on('console-message', (e, ...rest) => {
+      const m = e && typeof e.message === 'string' ? e.message : rest[1];
+      if (typeof m === 'string' && m.startsWith('[cz-noads]')) console.log(m);
+    });
+  }
+
   // Links externos abrem no navegador, não dentro do app
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/.test(url)) shell.openExternal(url);
@@ -130,6 +138,20 @@ app.whenReady().then(() => {
       cb({ requestHeaders: details.requestHeaders });
     }
   );
+
+  // Bloqueio de anúncios na rede (mesma ideia do Brave e do uBlock): o pedido do anúncio é cancelado antes de sair,
+  // então o player não baixa nem espera o anúncio. O yt-noads.js (abaixo) continua como reserva se algo escapar.
+  const AD_URLS = [
+    '*://*.doubleclick.net/*', '*://*.googlesyndication.com/*', '*://*.googleadservices.com/*', '*://*.2mdn.net/*',
+    '*://*.google.com/pagead/*',
+    '*://*.youtube.com/pagead/*', '*://*.youtube.com/api/stats/ads*', '*://*.youtube.com/ptracking*',
+    '*://*.youtube.com/get_midroll_*', '*://*.youtube.com/youtubei/v1/player/ad_break*',
+    '*://*.youtube-nocookie.com/pagead/*', '*://*.youtube-nocookie.com/api/stats/ads*', '*://*.youtube-nocookie.com/ptracking*'
+  ];
+  ses.webRequest.onBeforeRequest({ urls: AD_URLS }, (details, cb) => {
+    if (process.env.CZ_DEBUG) console.log('[cz-noads] pedido bloqueado:', details.url.split('?')[0]);
+    cb({ cancel: true });
+  });
 
   // Limpador de anúncios do YouTube: o preload de cada player pede o código aqui
   let noAds = '';
