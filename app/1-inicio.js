@@ -546,6 +546,71 @@ function updateCount() {
   }
 }
 
+// ---- Volume de cada pessoa (só para você): 0 a 200% ----
+// Até 100% vale o volume do próprio <video>. Acima disso o navegador não deixa (o limite dele é 100%), então o som passa
+// por um amplificador (Web Audio) com um limitador contra estouro, e o <video> fica mudo. A tela compartilhada com som
+// chega na mesma faixa da voz de quem compartilha, então o controle vale para os dois.
+let boostCtx = null;
+function getBoostCtx() {
+  if (!boostCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    try { boostCtx = new AC({ latencyHint: 'playback' }); } catch (e) { try { boostCtx = new AC(); } catch (e2) { return null; } }
+  }
+  applyBoostSink();
+  return boostCtx;
+}
+function applyBoostSink() {
+  if (boostCtx && prefs.outDevice && boostCtx.setSinkId) boostCtx.setSinkId(prefs.outDevice).catch(() => {});
+}
+function disconnectBoost(video) {
+  const b = video._boost;
+  video._boost = null;
+  if (!b) return;
+  try { b.src.disconnect(); } catch (e) {}
+  try { b.gain.disconnect(); } catch (e) {}
+  try { b.lim.disconnect(); } catch (e) {}
+}
+function connectBoost(video) {
+  const s = video.srcObject;
+  const at = s && s.getAudioTracks && s.getAudioTracks()[0];
+  if (!at) return false;
+  if (video._boost && video._boost.track === at) return true;
+  disconnectBoost(video);
+  const ctx = getBoostCtx();
+  if (!ctx) return false;
+  try {
+    const src = ctx.createMediaStreamSource(new MediaStream([at]));
+    const gain = ctx.createGain();
+    const lim = ctx.createDynamicsCompressor();   // limitador: com 200% a voz alta não estoura
+    lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.003; lim.release.value = 0.12;
+    src.connect(gain); gain.connect(lim); lim.connect(ctx.destination);
+    video._boost = { src, gain, lim, track: at };
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    return true;
+  } catch (e) { return false; }
+}
+function setTileVolume(video, pct) {
+  pct = Math.max(0, Math.min(200, Math.round(Number(pct) || 0)));
+  video._vol = pct;
+  if (pct > 100 && connectBoost(video)) {
+    video.muted = true;   // o som sai pelo amplificador
+    video._boost.gain.gain.value = pct / 100;
+  } else {
+    disconnectBoost(video);
+    video.muted = false;
+    video.volume = Math.min(1, pct / 100);
+    if (pct > 100) video._vol = 100;   // sem amplificador neste aparelho: fica no máximo
+  }
+  const ctl = video.parentNode && video.parentNode.querySelector('.vol-control');
+  if (ctl) {
+    const r = ctl.querySelector('input'), l = ctl.querySelector('.vol-pct');
+    if (r) r.value = video._vol;
+    if (l) l.textContent = video._vol + '%';
+    ctl.classList.toggle('boosted', video._vol > 100);
+    ctl.classList.toggle('silent', video._vol === 0);
+  }
+}
+
 function addRemoteTile(peerId, name) {
   let tile = document.getElementById('tile-' + peerId);
   if (tile) return tile.querySelector('video');
@@ -564,9 +629,12 @@ function addRemoteTile(peerId, name) {
   volbar.innerHTML = '<div class="volfill"></div>';
   const volControl = document.createElement('div');
   volControl.className = 'vol-control';
-  volControl.innerHTML = '<span>' + icon('volume') + '</span><input type="range" min="0" max="100" value="100">';
-  volControl.querySelector('input').oninput = (e) => {
-    video.volume = e.target.value / 100;
+  volControl.title = 'Volume desta pessoa só para você (acima de 100% aumenta o som). Clique no ícone para silenciar.';
+  volControl.innerHTML = '<span class="vol-ic">' + icon('volume') + '</span><input type="range" min="0" max="200" step="5" value="100"><b class="vol-pct">100%</b>';
+  volControl.querySelector('input').oninput = (e) => setTileVolume(video, e.target.value);
+  volControl.querySelector('.vol-ic').onclick = () => {
+    const cur = video._vol == null ? 100 : video._vol;
+    if (cur > 0) { video._volBefore = cur; setTileVolume(video, 0); } else setTileVolume(video, video._volBefore || 100);
   };
   tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(volControl);
   addTileActions(tile);
@@ -593,7 +661,7 @@ function removeRemoteTile(peerId) {
   if (theater && tile && theater.tile === tile) exitTheater();
   if (pinnedId === 'tile-' + peerId) pinnedId = null;
   stopMeter('tile-' + peerId);
-  if (tile) tile.remove();
+  if (tile) { const v = tile.querySelector('video'); if (v) disconnectBoost(v); tile.remove(); }
   updateCount();
   applyLayout();
 }

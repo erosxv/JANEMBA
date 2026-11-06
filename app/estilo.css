@@ -744,3 +744,15 @@ body.yt-stage.idle #musicStageClose { opacity: 0; }
 #joinScreen .card.rejoin[hidden] { display: none; }
 #joinScreen .card.rejoin p { margin: 0; color: var(--cz-text); font-weight: 700; }
 #joinScreen .card.rejoin button { width: 100%; }
+
+/* ================= volume de cada pessoa: 0 a 200% ================= */
+.tile .vol-control span.vol-ic { cursor: pointer; display: inline-flex; }
+.tile .vol-control .vol-pct { font-size: 11px; font-weight: 600; min-width: 34px; text-align: right; color: #cfd6e4; font-variant-numeric: tabular-nums; }
+.tile .vol-control input[type="range"] { width: 72px; }
+.tile .vol-control.boosted .vol-pct { color: #ffb454; }
+.tile .vol-control.silent .vol-ic { opacity: .5; }
+/* tela cheia: o controle fica maior e sempre à vista (no celular não existe "passar o mouse"); some junto com os outros botões quando ninguém mexe */
+#grid .tile.theater .vol-control { opacity: 1; padding: 8px 12px; gap: 10px; }
+#grid .tile.theater .vol-control input[type="range"] { width: 150px; height: 22px; }
+#grid .tile.theater .vol-control .vol-pct { font-size: 13px; min-width: 42px; }
+body.idle #grid .tile.theater .vol-control { opacity: 0; pointer-events: none; }

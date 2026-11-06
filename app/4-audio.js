@@ -418,6 +418,7 @@ function applySink(media) {
 }
 function applySinkAll() {
   document.querySelectorAll('.tile video').forEach(applySink);
+  applyBoostSink();
   if (monitorAudio) applySink(monitorAudio);
 }
 

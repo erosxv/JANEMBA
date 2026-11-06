@@ -260,7 +260,18 @@ document.addEventListener('keydown', (e) => {
     $('micBtn').click();
     return;
   }
-  if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  // Assistindo a tela de alguém em tela cheia: ↑ e ↓ aumentam e diminuem o volume dela (de 0 a 200%, só para você)
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && theater && theater.tile.id !== 'tile-local') {
+    const v = theater.tile.querySelector('video');
+    if (v) {
+      e.preventDefault();
+      setTileVolume(v, (v._vol == null ? 100 : v._vol) + (e.key === 'ArrowUp' ? 10 : -10));
+      toast('Volume ' + v._vol + '%');
+    }
+    return;
+  }
+  if (e.repeat) return;
   if (e.key === 'Enter') { if (tag === 'button') return; e.preventDefault(); toggleChat(true); return; }
   if (e.code === 'KeyF') { toggleFullscreen(); return; }
   const n = Number(e.key);

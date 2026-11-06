@@ -451,6 +451,7 @@ function wireCall(call, name) {
     clearTimeout(call._connectTimer);
     const video = addRemoteTile(call.peer, name || remoteNames[call.peer]);
     if (video.srcObject !== remoteStream) video.srcObject = remoteStream;
+    if (video._vol != null) setTileVolume(video, video._vol);   // chegou faixa nova: mantém o volume que você escolheu (e o amplificador)
     applyPeerState(call.peer);
     tryPlay(video);
     attachVolumeMeter(remoteStream, 'tile-' + call.peer);
