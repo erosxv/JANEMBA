@@ -79,18 +79,52 @@ async function guardOwnAudio(track) {
 }
 function connectScreenAudio(track) {
   guardOwnAudio(track);
-  disconnectScreenAudio();
+  dropScreenAudioNodes();
   ensureAudioGraph();
   const ctx = getAudioCtx();
   screenAudioSrc = ctx.createMediaStreamSource(new MediaStream([track]));
   screenAudioGain = ctx.createGain();
   screenAudioGain.gain.value = 1;
-  screenAudioSrc.connect(screenAudioGain); screenAudioGain.connect(outDest);
+  screenAudioSrc.connect(screenAudioGain); screenAudioGain.connect(screenDest);   // vai na faixa do som da tela, separada da voz
+  screenAudioGain.connect(compatDest);                                             // e misturado na voz, para quem tem versão antiga
+  screenAudioChanged();
 }
 function disconnectScreenAudio() {
+  dropScreenAudioNodes();
+  screenAudioChanged();
+}
+function dropScreenAudioNodes() {
   try { if (screenAudioSrc) screenAudioSrc.disconnect(); } catch (e) {}
   try { if (screenAudioGain) screenAudioGain.disconnect(); } catch (e) {}
   screenAudioSrc = screenAudioGain = null;
+}
+// O som da tela é a 2ª faixa de áudio de cada ligação (a 1ª é a voz). A faixa só é enviada enquanto há som da tela:
+// fora disso a ligação a deixa vazia e não gasta internet. Quem ouve é avisado pelo estado (sau) para mostrar o controle.
+function audioSenders(call) {
+  const pc = call && call.peerConnection;
+  if (!pc || !pc.getTransceivers) return {};
+  const tr = pc.getTransceivers()
+    .filter((t) => t.mid !== null && t.receiver && t.receiver.track && t.receiver.track.kind === 'audio')
+    .sort((a, b) => Number(a.mid) - Number(b.mid));
+  return { voice: tr[0] ? tr[0].sender : null, screen: tr[1] ? tr[1].sender : null };
+}
+// Quem está numa versão antiga (não avisa "sas") não separa as duas faixas: para ele o som da tela segue misturado na voz,
+// como sempre foi. Para as versões novas, o som da tela vai na faixa própria e a voz continua limpa.
+function syncScreenAudioSender(call) {
+  const { voice, screen } = audioSenders(call);
+  const separate = !!(peerStates[call.peer] && peerStates[call.peer].sas);
+  if (voice) {
+    const want = (screenAudioSrc && !separate && compatDest) ? compatDest.stream.getAudioTracks()[0] : micOutputStream.getAudioTracks()[0];
+    if (want && voice.track !== want) voice.replaceTrack(want).catch(() => {});
+  }
+  if (screen) {
+    const want = (screenAudioSrc && separate && screenOutStream) ? screenOutStream.getAudioTracks()[0] : null;
+    if (screen.track !== want) screen.replaceTrack(want).catch(() => {});
+  }
+}
+function screenAudioChanged() {
+  Object.keys(calls).forEach((id) => syncScreenAudioSender(calls[id]));
+  sendMyState();
 }
 
 function screenConstraints() {
@@ -261,13 +295,17 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (e.ctrlKey || e.altKey || e.metaKey) return;
-  // Assistindo a tela de alguém em tela cheia: ↑ e ↓ aumentam e diminuem o volume dela (de 0 a 200%, só para você)
+  // Assistindo a tela de alguém em tela cheia: ↑ e ↓ mudam o volume do som da tela; Shift + ↑ ou ↓ mudam o da voz
+  // (de 0 a 200%, só para você). Se a pessoa não manda som da tela, ↑ e ↓ mudam a voz.
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && theater && theater.tile.id !== 'tile-local') {
-    const v = theater.tile.querySelector('video');
-    if (v) {
+    const voice = theater.tile.querySelector('video');
+    const sa = theater.tile._screenAudio;
+    const hasScreenSound = !!(sa && sa._ctl && sa._ctl.style.display !== 'none');
+    const target = (hasScreenSound && !e.shiftKey) ? sa : voice;
+    if (target) {
       e.preventDefault();
-      setTileVolume(v, (v._vol == null ? 100 : v._vol) + (e.key === 'ArrowUp' ? 10 : -10));
-      toast('Volume ' + v._vol + '%');
+      setTileVolume(target, (target._vol == null ? 100 : target._vol) + (e.key === 'ArrowUp' ? 10 : -10));
+      toast((target === sa ? 'Som da tela ' : 'Voz ') + target._vol + '%');
     }
     return;
   }

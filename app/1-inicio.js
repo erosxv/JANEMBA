@@ -601,7 +601,7 @@ function setTileVolume(video, pct) {
     video.volume = Math.min(1, pct / 100);
     if (pct > 100) video._vol = 100;   // sem amplificador neste aparelho: fica no máximo
   }
-  const ctl = video.parentNode && video.parentNode.querySelector('.vol-control');
+  const ctl = video._ctl;
   if (ctl) {
     const r = ctl.querySelector('input'), l = ctl.querySelector('.vol-pct');
     if (r) r.value = video._vol;
@@ -627,16 +627,16 @@ function addRemoteTile(peerId, name) {
   const volbar = document.createElement('div');
   volbar.className = 'volbar';
   volbar.innerHTML = '<div class="volfill"></div>';
-  const volControl = document.createElement('div');
-  volControl.className = 'vol-control';
-  volControl.title = 'Volume desta pessoa só para você (acima de 100% aumenta o som). Clique no ícone para silenciar.';
-  volControl.innerHTML = '<span class="vol-ic">' + icon('volume') + '</span><input type="range" min="0" max="200" step="5" value="100"><b class="vol-pct">100%</b>';
-  volControl.querySelector('input').oninput = (e) => setTileVolume(video, e.target.value);
-  volControl.querySelector('.vol-ic').onclick = () => {
-    const cur = video._vol == null ? 100 : video._vol;
-    if (cur > 0) { video._volBefore = cur; setTileVolume(video, 0); } else setTileVolume(video, video._volBefore || 100);
-  };
-  tile.appendChild(video); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(volControl);
+  // Dois controles de volume, cada um só para você: a VOZ da pessoa (no <video>) e o SOM DA TELA que ela compartilha
+  // (num <audio> à parte, que só aparece quando ela está mandando som da tela)
+  const screenAudio = document.createElement('audio');
+  screenAudio.autoplay = true;
+  const volControl = makeVolControl(video, 'volume', 'Voz', 'Volume da voz desta pessoa, só para você (acima de 100% aumenta o som). Clique no ícone para silenciar.');
+  const screenControl = makeVolControl(screenAudio, 'monitor', 'Tela', 'Volume do som da tela que esta pessoa compartilha, só para você (acima de 100% aumenta o som). Clique no ícone para silenciar.');
+  screenControl.classList.add('vol-screen');
+  screenControl.style.display = 'none';
+  tile._screenAudio = screenAudio;
+  tile.appendChild(video); tile.appendChild(screenAudio); tile.appendChild(avatar); tile.appendChild(tag); tile.appendChild(volbar); tile.appendChild(volControl); tile.appendChild(screenControl);
   addTileActions(tile);
   const sbadge = document.createElement('div'); sbadge.className = 'screen-badge'; sbadge.innerHTML = icon('monitor') + 'compartilhando tela'; tile.appendChild(sbadge);
   const mic = document.createElement('div'); mic.className = 'micst'; tile.appendChild(mic);
@@ -649,11 +649,43 @@ function addRemoteTile(peerId, name) {
   hc.querySelector('.hc-kick').onclick = (e) => { e.stopPropagation(); hostKick(peerId); };
   tile.appendChild(hc);
   tile.addEventListener('dblclick', (e) => { if (!e.target.closest('.vol-control, .tile-actions')) togglePin('tile-' + peerId); });
-  applySink(video);
+  applySink(video); applySink(screenAudio);
   $('grid').appendChild(tile);
   updateCount();
   applyPeerState(peerId);
   return video;
+}
+
+// Um controle de volume (ícone que silencia, slider de 0 a 200% e a porcentagem) ligado a um <video> ou <audio>
+function makeVolControl(media, iconName, label, title) {
+  const c = document.createElement('div');
+  c.className = 'vol-control';
+  c.title = title;
+  c.innerHTML = '<span class="vol-ic">' + icon(iconName) + '</span><b class="vol-lbl">' + label + '</b><input type="range" min="0" max="200" step="5" value="100" aria-label="' + title.split(',')[0] + '"><b class="vol-pct">100%</b>';
+  media._ctl = c;
+  c.querySelector('input').oninput = (e) => setTileVolume(media, e.target.value);
+  c.querySelector('.vol-ic').onclick = () => {
+    const cur = media._vol == null ? 100 : media._vol;
+    if (cur > 0) { media._volBefore = cur; setTileVolume(media, 0); } else setTileVolume(media, media._volBefore || 100);
+  };
+  return c;
+}
+
+// Põe (ou tira) a faixa do som da tela no <audio> do tile, mantendo o volume que você escolheu
+function setTileScreenAudio(peerId, track) {
+  const tile = document.getElementById('tile-' + peerId);
+  const a = tile && tile._screenAudio;
+  if (!a) return;
+  const cur = a.srcObject && a.srcObject.getAudioTracks()[0];
+  if (!track) {
+    if (cur) { disconnectBoost(a); a.srcObject = null; }
+    return;
+  }
+  if (cur && cur.id === track.id) return;
+  disconnectBoost(a);
+  a.srcObject = new MediaStream([track]);
+  setTileVolume(a, a._vol == null ? 100 : a._vol);
+  tryPlay(a);
 }
 
 function removeRemoteTile(peerId) {
@@ -661,7 +693,11 @@ function removeRemoteTile(peerId) {
   if (theater && tile && theater.tile === tile) exitTheater();
   if (pinnedId === 'tile-' + peerId) pinnedId = null;
   stopMeter('tile-' + peerId);
-  if (tile) { const v = tile.querySelector('video'); if (v) disconnectBoost(v); tile.remove(); }
+  if (tile) {
+    const v = tile.querySelector('video'); if (v) disconnectBoost(v);
+    if (tile._screenAudio) { disconnectBoost(tile._screenAudio); tile._screenAudio.srcObject = null; }
+    tile.remove();
+  }
   updateCount();
   applyLayout();
 }

@@ -114,7 +114,10 @@ async function collectStats(pid) {
     else if (r.type === 'remote-inbound-rtp' && typeof r.roundTripTime === 'number') rttRemote = r.roundTripTime * 1000;
     else if (r.type === 'inbound-rtp' && !r.isRemote) {
       const kind = r.kind || r.mediaType;
-      if (kind === 'audio') {
+      // o som da tela vem numa 2ª faixa de áudio: fica de fora para não bagunçar as métricas da voz
+      const isScreenAudio = kind === 'audio' && ((call._screenTrackId && r.trackIdentifier === call._screenTrackId) || (call._screenMid != null && r.mid != null && String(r.mid) === String(call._screenMid)));
+      if (isScreenAudio) { /* ignora */ }
+      else if (kind === 'audio') {
         cur.aIn = r.bytesReceived; cur.aLost = r.packetsLost; cur.aRecv = r.packetsReceived;
         if (typeof r.jitter === 'number') m.jitter = r.jitter * 1000;
         cur.aSamp = r.totalSamplesReceived; cur.aConc = r.concealedSamples; cur.aSilConc = r.silentConcealedSamples;
@@ -125,7 +128,7 @@ async function collectStats(pid) {
       }
     } else if (r.type === 'outbound-rtp' && !r.isRemote) {
       const kind = r.kind || r.mediaType;
-      if (kind === 'audio') cur.aOut = r.bytesSent;
+      if (kind === 'audio') cur.aOut = (cur.aOut || 0) + r.bytesSent;   // voz + som da tela
       else if (kind === 'video') { cur.vOut = r.bytesSent; m.limit = r.qualityLimitationReason || null; }
     }
   });

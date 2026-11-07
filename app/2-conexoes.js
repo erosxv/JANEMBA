@@ -83,7 +83,8 @@ function nameOf(pid) { return remoteNames[pid] || 'Participante'; }
 function isPeerPresent(pid) { return isHost ? !!hostConns[pid] : (knownPeers.has(pid) || pid === hostId()); }
 // Celular/tablet avisa os outros: quem compartilha a tela manda para ele uma versão mais leve (ver applySenderParams)
 const IS_PHONE = /Android|iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-function myState() { return { mic: !!(hasMic && micOn), screen: !!sharingScreen, mob: IS_PHONE }; }
+// sas = esta versão manda o som da tela em faixa própria; sau = tem som da tela sendo compartilhado agora
+function myState() { return { mic: !!(hasMic && micOn), screen: !!sharingScreen, mob: IS_PHONE, sas: true, sau: !!screenAudioSrc }; }
 
 function sendMyState() {
   if (!peer) return;
@@ -101,8 +102,9 @@ function sendMyName() {
 
 function setPeerState(pid, st) {
   const prev = peerStates[pid] || {};
-  peerStates[pid] = { mic: st.mic !== false, screen: !!st.screen, mob: !!st.mob };
+  peerStates[pid] = { mic: st.mic !== false, screen: !!st.screen, mob: !!st.mob, sas: !!st.sas, sau: !!st.sau };
   if (peerStates[pid].mob !== !!prev.mob && sharingScreen && calls[pid]) applySenderParams(calls[pid]);
+  if (peerStates[pid].sas !== !!prev.sas && calls[pid]) syncScreenAudioSender(calls[pid]);   // descobrimos a versão dele: ajusta como mandar o som da tela
   if (peerStates[pid].screen && !prev.screen) notify('🖥️ ' + nameOf(pid) + ' está compartilhando a tela');
   applyPeerState(pid);
 }
@@ -161,7 +163,7 @@ function handleData(fromId, msg) {
     });
   } else if (msg.type === 'state') {
     setPeerState(from, msg);
-    if (isHost) relay(fromId, { type: 'state', mic: !!msg.mic, screen: !!msg.screen, mob: !!msg.mob });
+    if (isHost) relay(fromId, { type: 'state', mic: !!msg.mic, screen: !!msg.screen, mob: !!msg.mob, sas: !!msg.sas, sau: !!msg.sau });
   } else if (msg.type === 'name') {
     remoteNames[from] = cleanName(msg.name) || 'Participante';
     setRemoteAvatar(from, msg.av);
@@ -326,7 +328,8 @@ function getPlaceholderVideoTrack() {
 
 function outgoingStream() {
   ensureAudioGraph();
-  const tracks = [...micOutputStream.getAudioTracks()];
+  // Ordem fixa: 1ª faixa de áudio = voz, 2ª = som da tela, depois o vídeo. Quem recebe separa pelas linhas do SDP.
+  const tracks = [...micOutputStream.getAudioTracks(), ...screenOutStream.getAudioTracks()];
   const screenTrack = (sharingScreen && screenStream) ? screenStream.getVideoTracks()[0] : null;
   tracks.push(screenTrack || getPlaceholderVideoTrack());
   return new MediaStream(tracks);
@@ -334,6 +337,12 @@ function outgoingStream() {
 
 // Opus otimizado para voz: mono, FEC (recupera pacotes perdidos), sem DTX (não corta início de frase) e ~64 kbps
 function tuneOpusSdp(sdp) {
+  try {
+    // cada faixa de áudio (voz e som da tela) tem a sua linha m=audio: ajusta uma por uma
+    return sdp.split(/(?=\r?\nm=)/).map((sec) => (/^\r?\n?m=audio/.test(sec) ? tuneOpusSection(sec) : sec)).join('');
+  } catch (e) { return sdp; }
+}
+function tuneOpusSection(sdp) {
   try {
     const m = /a=rtpmap:(\d+) opus\/48000\/2/i.exec(sdp);
     if (!m) return sdp;
@@ -426,6 +435,7 @@ function onIceState(call, st) {
     redialAttempts[pid] = 0;
     setReconnecting(pid, false);
     applySenderParamsAll(); // mais alguém assistindo: a fatia de upload de cada um muda
+    syncScreenAudioSender(call);   // sem som da tela, a faixa dele fica vazia (não gasta internet)
   } else if (st === 'disconnected') {
     setReconnecting(pid, true);
     clearTimeout(call._discTimer);
@@ -437,6 +447,21 @@ function onIceState(call, st) {
   }
 }
 
+// Faixa do som da tela que chegou (2ª linha m=audio do SDP), ou null (quem não tem versão nova manda tudo junto na voz)
+function remoteScreenAudioTrack(call, have) {
+  try {
+    const tr = call.peerConnection.getTransceivers()
+      .filter((t) => t.mid !== null && t.receiver && t.receiver.track && t.receiver.track.kind === 'audio')
+      .sort((a, b) => Number(a.mid) - Number(b.mid));
+    if (tr.length >= 2) {
+      call._screenMid = tr[1].mid;
+      const t = tr[1].receiver.track;
+      if (have.some((x) => x.id === t.id)) return t;
+    }
+  } catch (e) {}
+  return null;
+}
+
 function wireCall(call, name) {
   // ligação que nunca chega a conectar (par sumiu): fecha para cair na rotina de religação
   call._connectTimer = setTimeout(() => { if (calls[call.peer] === call && !call._gotStream) { try { call.close(); } catch (e) {} } }, 20000);
@@ -445,16 +470,21 @@ function wireCall(call, name) {
     // áudio e vídeo chegam em streams separados (ver unsyncRemoteVideo): junta tudo num só para o tile
     const have = call._tracks || (call._tracks = []);
     part.getTracks().forEach((t) => { if (!have.some((x) => x.id === t.id)) have.push(t); });
-    if (call._remote && call._remote.getTracks().length === have.length) return;
-    const remoteStream = call._remote = new MediaStream(have);
+    if (call._remote && call._nTracks === have.length) return;
+    call._nTracks = have.length;
+    // A 2ª faixa de áudio da ligação é o som da tela (só quem tem versão nova manda); a 1ª é a voz. A ordem vem do SDP.
+    const screenTrack = remoteScreenAudioTrack(call, have);
+    call._screenTrackId = screenTrack ? screenTrack.id : null;
+    const remoteStream = call._remote = new MediaStream(have.filter((t) => !screenTrack || t.id !== screenTrack.id));
     call._gotStream = true;
     clearTimeout(call._connectTimer);
     const video = addRemoteTile(call.peer, name || remoteNames[call.peer]);
     if (video.srcObject !== remoteStream) video.srcObject = remoteStream;
     if (video._vol != null) setTileVolume(video, video._vol);   // chegou faixa nova: mantém o volume que você escolheu (e o amplificador)
+    setTileScreenAudio(call.peer, screenTrack);
     applyPeerState(call.peer);
     tryPlay(video);
-    attachVolumeMeter(remoteStream, 'tile-' + call.peer);
+    attachVolumeMeter(remoteStream, 'tile-' + call.peer);   // o medidor de "falando" usa só a voz
   });
   call.on('iceStateChanged', (st) => onIceState(call, st));
   call.on('error', () => {});
@@ -473,6 +503,9 @@ function applyPeerState(pid) {
   tile.classList.toggle('has-screen', hasVideo);
   const sb = tile.querySelector('.screen-badge');
   if (sb) sb.style.display = hasVideo ? 'block' : 'none';
+  // controle do som da tela: só quando a pessoa está mandando som da tela numa faixa própria
+  const sa = tile._screenAudio;
+  if (sa && sa._ctl) sa._ctl.style.display = (st.sas && st.sau && sa.srcObject) ? '' : 'none';
   renderBadges(pid);
   applyLayout();
 }

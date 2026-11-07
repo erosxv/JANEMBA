@@ -2,6 +2,7 @@
 // ================= v10: motor de áudio do microfone =================
 // mic (getUserMedia) → [RNNoise IA ou DeepFilterNet] → [portão de ruído] → micTap → ganho/mudo → destino fixo (vai pras chamadas)
 let outDest = null, micTap = null, micTapAnalyser = null;
+let screenDest = null, screenOutStream = null, compatDest = null;   // som da tela: faixa de áudio própria (a voz vai em outra), para quem ouve controlar o volume de cada uma
 let micTrack = null, micSourceNode = null, rawAnalyser = null, rnnoiseNode = null, dfnNode = null, gateNode = null;
 let rnnoiseAssets = null, rnnoisePromise = null, rnnoiseFailed = false;
 let dfnAssets = null, dfnPromise = null, dfnFailed = false, dfnProgress = -1, dfnMem = 0, dfnGen = 0, dfnCacheOk = false;
@@ -31,6 +32,11 @@ function ensureAudioGraph() {
   micTapAnalyser.fftSize = 1024; micTapAnalyser.smoothingTimeConstant = 0;
   micTap.connect(micTapAnalyser);
   micOutputStream = outDest.stream;
+  screenDest = ctx.createMediaStreamDestination();
+  screenOutStream = screenDest.stream;
+  // voz + som da tela misturados, só para quem ainda está numa versão antiga do app (ela não separa as duas faixas)
+  compatDest = ctx.createMediaStreamDestination();
+  micGainNode.connect(compatDest);
 }
 
 function simdSupported() {
@@ -417,7 +423,7 @@ function applySink(media) {
   if (prefs.outDevice && media && media.setSinkId) media.setSinkId(prefs.outDevice).catch(() => {});
 }
 function applySinkAll() {
-  document.querySelectorAll('.tile video').forEach(applySink);
+  document.querySelectorAll('.tile video, .tile audio').forEach(applySink);
   applyBoostSink();
   if (monitorAudio) applySink(monitorAudio);
 }
