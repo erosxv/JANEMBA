@@ -137,7 +137,7 @@ function applyMusicCommand(cmd, by) {
       const title = cleanTitle(cmd.title) || id;
       q.push({ id, title, by: who });
       if (idle) go(q.length - 1);
-      if (by !== peer.id) notify('🎵 ' + who + ' adicionou ' + title);
+      if (by !== peer.id && !cmd.quiet) notify('🎵 ' + who + ' adicionou ' + title);
       break;
     }
     case 'play': if (musicTrack()) music.playing = true; break;
@@ -178,7 +178,11 @@ function receiveMusic(msg) {
   if (q.some(t => !t.id)) return;
   const cur = Number.isInteger(msg.cur) ? Math.max(-1, Math.min(q.length, msg.cur)) : -1;
   music = { queue: q, cur, playing: !!msg.playing && cur >= 0 && cur < q.length, pos: Math.max(0, Number(msg.pos) || 0), at: Date.now() };
-  if (before.size) q.forEach(t => { if (!before.has(t.id + '|' + t.by) && t.by !== myName) notify('🎵 ' + t.by + ' adicionou ' + (t.title || t.id)); });
+  if (before.size) {
+    const novas = q.filter(t => !before.has(t.id + '|' + t.by) && t.by !== myName);
+    if (novas.length > 2) notify('🎵 ' + novas[0].by + ' adicionou ' + novas.length + ' músicas');
+    else novas.forEach(t => notify('🎵 ' + t.by + ' adicionou ' + (t.title || t.id)));
+  }
   renderMusic();
   if (q.length) ensureYT().then(syncPlayer); else syncPlayer();   // fila vazia: para o que estiver tocando
 }
@@ -465,3 +469,148 @@ setInterval(() => {
 }, 1000);
 // o anfitrião reenvia o relógio de tempos em tempos para corrigir quem atrasou
 setInterval(() => { if (isHost && music.playing) broadcastMusic(); }, 5000);
+
+
+// ---- importar playlist (Spotify, links do YouTube ou "Artista - Música") ----
+// O Spotify não deixa ler playlist de outra pessoa pela API, então lemos a página pública de "incorporar" (embed).
+const CORS_PROXIES = [
+  (u) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  (u) => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  (u) => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u),
+];
+async function fetchText(url, ms) {
+  ms = ms || 9000;
+  const ok = (t) => typeof t === 'string' && t.length > 200;
+  const tries = [];
+  const Http = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
+  if (Http) tries.push(async () => { const r = await Http.get({ url, readTimeout: ms, connectTimeout: ms }); if (r.status >= 400) throw new Error('HTTP ' + r.status); return typeof r.data === 'string' ? r.data : JSON.stringify(r.data); });
+  const plain = async (u) => { const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms); try { const r = await fetch(u, { signal: ctl.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.text(); } finally { clearTimeout(t); } };
+  tries.push(() => plain(url));
+  CORS_PROXIES.forEach((mk) => tries.push(() => plain(mk(url))));
+  for (const t of tries) { try { const x = await t(); if (ok(x)) return x; } catch (e) {} }
+  return null;
+}
+// procura músicas dentro do JSON da página (o formato exato muda, então a busca é genérica)
+function spotifyExtract(html) {
+  let data = null;
+  const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (m) { try { data = JSON.parse(m[1]); } catch (e) {} }
+  if (!data) {
+    const r = html.match(/<script id="resource"[^>]*>([\s\S]*?)<\/script>/);
+    if (r) { const raw = r[1].trim(); try { data = JSON.parse(raw); } catch (e) { try { data = JSON.parse(decodeURIComponent(escape(atob(raw)))); } catch (e2) {} } }
+  }
+  const out = [], seen = new Set();
+  const walk = (o, d) => {
+    if (!o || typeof o !== 'object' || d > 30) return;
+    if (Array.isArray(o)) { o.forEach((x) => walk(x, d + 1)); return; }
+    const uri = typeof o.uri === 'string' ? o.uri : '';
+    if (/^spotify:track:/.test(uri) || o.type === 'track') {
+      const title = o.title || o.name;
+      const artist = typeof o.subtitle === 'string' ? o.subtitle : (Array.isArray(o.artists) ? o.artists.map((a) => a && a.name).filter(Boolean).join(', ') : '');
+      if (typeof title === 'string' && title) {
+        const key = uri || title + '|' + artist;
+        if (!seen.has(key)) { seen.add(key); out.push({ title: title.trim(), artist: String(artist).replace(/ /g, ' ').trim() }); }
+        return;
+      }
+    }
+    for (const k in o) walk(o[k], d + 1);
+  };
+  if (data) walk(data, 0);
+  if (!out.length) {   // plano B: título da página de uma faixa ("Música - song and lyrics by Artista | Spotify")
+    const t = html.match(/<title>([^<]*)<\/title>/i);
+    const mm = t && decodeEntities(t[1]).match(/^(.+?)\s*[-–]\s*(?:song|canção|música)[^|]*?\bby\s+(.+?)\s*\|\s*Spotify/i);
+    if (mm) out.push({ title: mm[1].trim(), artist: mm[2].trim() });
+  }
+  return out;
+}
+function parseImportText(text) {
+  const items = [];   // {kind:'yt'|'list'|'track'|'query', ...}
+  for (let line of String(text || '').split(/\r?\n/)) {
+    line = line.trim().replace(/^(?:[-*•]|\d+[.)])\s+/, '');
+    if (!line) continue;
+    const parts = line.match(/https?:\/\/\S+/g);
+    if (!parts) { items.push({ kind: 'query', q: line.slice(0, 120) }); continue; }
+    for (const u of parts) {
+      const sp = u.match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?(playlist|album|track)\/([A-Za-z0-9]+)/);
+      if (sp) { items.push({ kind: sp[1] === 'track' ? 'track' : 'list', type: sp[1], id: sp[2] }); continue; }
+      if (parseYouTubeId(u)) { items.push({ kind: 'yt', id: parseYouTubeId(u) }); continue; }
+      items.push({ kind: 'bad', u });
+    }
+  }
+  return items;
+}
+async function spotifyTracks(it) {
+  const html = await fetchText('https://open.spotify.com/embed/' + it.type + '/' + it.id);
+  return html ? spotifyExtract(html) : null;   // null = não consegui abrir a página
+}
+// 1º resultado que pode tocar fora do YouTube; null = busca fora do ar; undefined = não achou
+async function findPlayable(q) {
+  const res = await searchMusic(q, 3);
+  if (res === null) return null;
+  for (const r of res) {
+    const info = r.ok ? { title: r.title } : await fetchVideoInfo(r.id);
+    if (!info.blocked) return { id: r.id, title: r.title || info.title };
+  }
+  return undefined;
+}
+let importRun = null;
+async function runImport(text, say) {
+  const items = parseImportText(text);
+  if (!items.length) { say('Cole um link de playlist, links de músicas ou uma lista "Artista - Música".'); return; }
+  const run = importRun = { stop: false };
+  const jobs = [], problems = [];
+  for (const it of items) {
+    if (run.stop) break;
+    if (it.kind === 'bad') { problems.push('link não suportado: ' + it.u.slice(0, 40)); continue; }
+    if (it.kind === 'query' || it.kind === 'yt') { jobs.push(it); continue; }
+    say('Lendo ' + (it.type === 'track' ? 'a música' : 'a lista') + ' do Spotify…');
+    const tr = await spotifyTracks(it);
+    if (tr === null) { problems.push('não consegui abrir um link do Spotify (a playlist precisa ser pública)'); continue; }
+    if (!tr.length) { problems.push('não achei músicas nesse link do Spotify'); continue; }
+    tr.forEach((t) => jobs.push({ kind: 'query', q: (t.artist ? t.artist + ' - ' : '') + t.title }));
+  }
+  const room = Math.max(0, MUSIC_MAX_QUEUE - music.queue.length);
+  const cut = jobs.length > room;
+  if (cut) jobs.length = room;
+  if (!jobs.length) { say(problems.length ? 'Nada para adicionar: ' + problems.join('; ') + '.' : (room ? 'Nada para adicionar.' : 'A fila está cheia (máx. ' + MUSIC_MAX_QUEUE + ').')); importRun = null; return; }
+  ensureYT();
+  const total = jobs.length, notFound = [];
+  let added = 0, down = 0, done = 0;
+  const WINDOW = 3;
+  const tasks = [];
+  const start = (i) => { if (i < total && !tasks[i]) tasks[i] = jobs[i].kind === 'yt' ? Promise.resolve({ id: jobs[i].id, title: '' }) : findPlayable(jobs[i].q).catch(() => null); };
+  for (let i = 0; i < Math.min(WINDOW, total); i++) start(i);
+  for (let i = 0; i < total && !run.stop; i++) {
+    start(i + WINDOW - 1);
+    const r = await tasks[i];
+    done++;
+    if (r === null) { notFound.push(jobs[i].q); if (++down >= 3) { problems.push('a busca de músicas saiu do ar'); break; } }
+    else down = 0;
+    if (r) {
+      let title = r.title;
+      if (jobs[i].kind === 'yt') { const info = await fetchVideoInfo(r.id); if (info.blocked) { notFound.push('um vídeo que não toca fora do YouTube'); continue; } title = info.title; }
+      musicCommand({ cmd: 'add', id: r.id, title, quiet: true });
+      added++;
+      await new Promise((ok) => setTimeout(ok, 250));
+    } else if (r === undefined) notFound.push(jobs[i].q);
+    say('Procurando ' + done + '/' + total + ' · ' + added + ' na fila');
+  }
+  const stopped = run.stop;
+  importRun = null;
+  let msg = (stopped ? 'Parado. ' : 'Pronto. ') + added + ' de ' + total + ' músicas entraram na fila.';
+  if (cut) msg += ' O resto ficou de fora: a fila aceita até ' + MUSIC_MAX_QUEUE + '.';
+  if (notFound.length) msg += ' Não achei: ' + notFound.slice(0, 4).join(', ') + (notFound.length > 4 ? ' e mais ' + (notFound.length - 4) : '') + '.';
+  if (problems.length) msg += ' Aviso: ' + problems.join('; ') + '.';
+  say(msg);
+  if (added) toast('🎵 ' + added + ' músicas adicionadas');
+}
+$('musicImportToggle').onclick = () => { const b = $('musicImport'); b.hidden = !b.hidden; if (!b.hidden) $('musicImportText').focus(); };
+$('musicImportGo').onclick = async () => {
+  if (importRun) return;
+  const st = $('musicImportStatus'), go = $('musicImportGo'), stop = $('musicImportStop');
+  const say = (t) => { st.textContent = t; };
+  go.disabled = true; stop.hidden = false;
+  try { await runImport($('musicImportText').value, say); } catch (e) { say('Deu erro na importação. Tente de novo.'); importRun = null; }
+  go.disabled = false; stop.hidden = true;
+};
+$('musicImportStop').onclick = () => { if (importRun) importRun.stop = true; };

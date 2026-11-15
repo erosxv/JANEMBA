@@ -139,6 +139,14 @@ app.whenReady().then(() => {
     }
   );
 
+  // Importar playlist: a página pública do Spotify não manda o cabeçalho CORS, então o app de PC o acrescenta só para ela.
+  ses.webRequest.onHeadersReceived({ urls: ['https://open.spotify.com/embed/*'] }, (details, cb) => {
+    const h = details.responseHeaders || {};
+    for (const k of Object.keys(h)) if (k.toLowerCase() === 'access-control-allow-origin') delete h[k];
+    h['Access-Control-Allow-Origin'] = ['*'];
+    cb({ responseHeaders: h });
+  });
+
   // Bloqueio de anúncios na rede (mesma ideia do Brave e do uBlock): o pedido do anúncio é cancelado antes de sair,
   // então o player não baixa nem espera o anúncio. O yt-noads.js (abaixo) continua como reserva se algo escapar.
   const AD_URLS = [

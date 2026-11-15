@@ -761,3 +761,12 @@ body.yt-stage.idle #musicStageClose { opacity: 0; }
 #grid .tile.theater .vol-control .vol-lbl { font-size: 13px; min-width: 34px; }
 #grid .tile.theater .vol-control.vol-screen { top: 64px; }
 body.idle #grid .tile.theater .vol-control { opacity: 0; pointer-events: none; }
+
+#musicImportToggle { background: transparent; color: #9aa0a6; border: 1px dashed #2a2e37; padding: 7px 10px; font-size: 12px; }
+#musicImport { display: flex; flex-direction: column; gap: 6px; }
+#musicImport[hidden] { display: none; }
+#musicImportText { width: 100%; box-sizing: border-box; resize: vertical; padding: 8px 10px; border-radius: 9px; border: 1px solid #2a2e37; background: #0f1115; color: #eaeaea; font: 13px/1.4 inherit; }
+#musicImport .mi-row { display: flex; gap: 6px; }
+#musicImport .mi-row button { background: #2a2e37; color: #eaeaea; padding: 8px 12px; font-size: 13px; }
+#musicImport .mi-row button:disabled { opacity: .5; }
+#musicImportStatus { white-space: pre-wrap; word-break: break-word; }

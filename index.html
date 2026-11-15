@@ -18,7 +18,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>window.Peer || document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');</script>
-<link rel="stylesheet" href="app/estilo.css?v=1.23.4">
+<link rel="stylesheet" href="app/estilo.css?v=1.24.0">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -140,6 +140,12 @@
     </div>
     <button id="musicUnlock" style="display:none"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Clique para ouvir a música aqui</button>
     <form id="musicAddForm"><input id="musicUrl" type="text" placeholder="Nome da música ou link do YouTube" autocomplete="off" enterkeyhint="search"><button type="submit">Buscar</button></form>
+    <button id="musicImportToggle" type="button">Importar playlist (Spotify, links, lista)</button>
+    <div id="musicImport" hidden>
+      <textarea id="musicImportText" rows="4" placeholder="Cole o link da playlist do Spotify, ou as músicas (links ou &quot;Artista - Música&quot;, uma por linha)" spellcheck="false"></textarea>
+      <div class="mi-row"><button id="musicImportGo" type="button">Importar</button><button id="musicImportStop" type="button" hidden>Parar</button></div>
+      <div id="musicImportStatus" class="hint" role="status"></div>
+    </div>
     <ol id="musicResults" hidden></ol>
     <ol id="musicQueue"></ol>
     <div class="hint">Cada pessoa ouve pelo próprio navegador; a sala só sincroniza a fila e o tempo. Use fones para a música não vazar pelo seu microfone. O volume acima vale só para você.</div>
@@ -295,12 +301,12 @@
   </div>
 </aside>
 
-<script src="app/1-inicio.js?v=1.23.4"></script>
-<script src="app/2-conexoes.js?v=1.23.4"></script>
-<script src="app/3-tela.js?v=1.23.4"></script>
-<script src="app/4-audio.js?v=1.23.4"></script>
-<script src="app/5-interface.js?v=1.23.4"></script>
-<script src="app/6-musica.js?v=1.23.4"></script>
-<script src="app/7-chat-extras.js?v=1.23.4"></script>
+<script src="app/1-inicio.js?v=1.24.0"></script>
+<script src="app/2-conexoes.js?v=1.24.0"></script>
+<script src="app/3-tela.js?v=1.24.0"></script>
+<script src="app/4-audio.js?v=1.24.0"></script>
+<script src="app/5-interface.js?v=1.24.0"></script>
+<script src="app/6-musica.js?v=1.24.0"></script>
+<script src="app/7-chat-extras.js?v=1.24.0"></script>
 </body>
 </html>
