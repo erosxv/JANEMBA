@@ -426,6 +426,22 @@ function onCallClosed(call) {
   else removeRemoteTile(pid);
 }
 
+// Ligação que passa pelo servidor TURN gasta a cota (1.000 GB/mês): marca a ligação e a tela vai com bitrate menor (ver applySenderParams)
+async function checkRelay(call) {
+  try {
+    const rep = await call.peerConnection.getStats();
+    const m = new Map(); rep.forEach((r) => m.set(r.id, r));
+    let sel = null;
+    rep.forEach((r) => { if (r.type === 'transport' && r.selectedCandidatePairId) sel = m.get(r.selectedCandidatePairId) || sel; });
+    if (!sel) rep.forEach((r) => { if (r.type === 'candidate-pair' && (r.nominated || r.selected) && r.state === 'succeeded') sel = r; });
+    if (!sel) return;
+    const lc = m.get(sel.localCandidateId), rc = m.get(sel.remoteCandidateId);
+    const relayed = !!((lc && lc.candidateType === 'relay') || (rc && rc.candidateType === 'relay'));
+    if (relayed !== !!call._relay) { call._relay = relayed; applySenderParams(call); }
+  } catch (e) {}
+}
+setInterval(() => { Object.keys(calls).forEach((id) => checkRelay(calls[id])); }, 15000);
+
 function onIceState(call, st) {
   if (calls[call.peer] !== call) return;
   const pid = call.peer;
@@ -434,16 +450,18 @@ function onIceState(call, st) {
     clearTimeout(call._discTimer); clearTimeout(call._connectTimer);
     redialAttempts[pid] = 0;
     setReconnecting(pid, false);
+    setTimeout(() => checkRelay(call), 1500);
     applySenderParamsAll(); // mais alguém assistindo: a fatia de upload de cada um muda
     syncScreenAudioSender(call);   // sem som da tela, a faixa dele fica vazia (não gasta internet)
   } else if (st === 'disconnected') {
     setReconnecting(pid, true);
     clearTimeout(call._discTimer);
-    // se não voltar sozinha em 8 s, refaz a ligação (o ICE do PeerJS não renegocia)
+    // se não voltar sozinha em 20 s, refaz a ligação (o ICE do PeerJS não renegocia).
+    // No celular a rede oscila e quase sempre volta sozinha em alguns segundos; religar do zero corta a tela.
     call._discTimer = setTimeout(() => {
       const pc = call.peerConnection;
       if (calls[pid] === call && pc && pc.iceConnectionState === 'disconnected') { try { call.close(); } catch (e) {} }
-    }, 8000);
+    }, 20000);
   }
 }
 

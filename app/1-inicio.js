@@ -407,7 +407,19 @@ function onHostLost() {
   setTimeout(() => startPeer(0), Math.random() * 1500);
 }
 
+// Celular: tela apagada faz o Android pausar a rede do app e a ligação cai. Mantém a tela acesa durante a chamada.
+let wakeLock = null;
+async function keepAwake() {
+  try {
+    if (!navigator.wakeLock || document.visibilityState !== 'visible') return;
+    if (wakeLock && !wakeLock.released) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if ($('callScreen') && $('callScreen').style.display === 'flex') keepAwake(); });
+
 function enterCallUI() {
+  keepAwake();
   $('joinScreen').style.display = 'none';
   $('callScreen').style.display = 'flex';
   $('roomLabel').textContent = roomId;

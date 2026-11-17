@@ -17,6 +17,8 @@ function senderOf(call, kind) {
 
 // Celular que assiste uma tela grande por muito tempo pode estourar a memória do navegador
 // (no iPhone aparece "esta página foi recarregada devido a um problema"): para ele vai no máximo 720p, 24 fps e 2,5 Mbps.
+// Ligação via servidor TURN (gasta a cota de 1.000 GB/mês): a tela vai com no máximo 3 Mbps
+const RELAY_SCREEN_BITRATE = 3e6;
 const PHONE_SCREEN = { height: 720, fps: 24, bitrate: 2.5e6 };
 
 // Parâmetros de envio por chamada: áudio com prioridade alta; vídeo com teto de bitrate/FPS e preferência nitidez×fluidez
@@ -41,7 +43,8 @@ async function applySenderParams(call) {
         const fps = Number(prefs.fps) || 30;
         // a internet de envio é uma só: 60% do upload informado nos Ajustes, dividido entre quem assiste
         const share = Math.max(0.5e6, (Number(prefs.upload) || 10) * 1e6 * 0.6 / Math.max(1, Object.keys(calls).length));
-        const cap = Math.min(screenMaxBitrate(), share);
+        let cap = Math.min(screenMaxBitrate(), share);
+        if (call._relay) cap = Math.min(cap, RELAY_SCREEN_BITRATE);
         p.encodings[0].maxBitrate = mob ? Math.min(cap, PHONE_SCREEN.bitrate) : cap;
         p.encodings[0].maxFramerate = mob ? Math.min(fps, PHONE_SCREEN.fps) : fps;
         p.encodings[0].scaleResolutionDownBy = (mob && st.height > PHONE_SCREEN.height) ? st.height / PHONE_SCREEN.height : 1;
