@@ -251,6 +251,7 @@
       }
       playBuffer(ctx, id, await urlBuffers[url]);
     } catch (e) {
+      stopSounds();
       const a = new Audio(url); a.volume = volume();
       const item = { _id: id, _vol: (v) => { a.volume = v; }, stop: () => { try { a.pause(); } catch (e2) {} done(); } };
       const cut = setTimeout(() => item.stop(), SB_MAX_S * 1000);
@@ -261,6 +262,7 @@
     }
   }
   function playBuffer(ctx, id, buf) {
+    stopSounds();   // um som novo reinicia: corta o que estava tocando, não empilha
     const out = ctx.createGain(); out.gain.value = volume(); out.connect(ctx.destination);
     const src = ctx.createBufferSource(); src.buffer = buf; src.connect(out);
     src._id = id; src._vol = (v) => { out.gain.value = v; }; playing.add(src); markPlaying();
@@ -537,16 +539,16 @@
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { toggle(false); } });
 
     // ---------------- envio ----------------
-    function canSend() {
+    function canSend(gap) {
       const now = Date.now();
-      if (now - lastSend < 900) { api.toast('Calma, um de cada vez 🙂'); return false; }
+      if (now - lastSend < (gap || 900)) { api.toast('Calma, um de cada vez 🙂'); return false; }
       lastSend = now; return true;
     }
 
     async function som(id) {
       const s = await findSound(id);
       if (!s) { const l = (await loadFileSounds()).concat(SOUNDS); api.toast('Esse som não existe. Tem: ' + l.map((x) => x.id).join(', ')); return; }
-      if (!canSend()) return;
+      if (!canSend(150)) return;   // som: só segura duplo clique; cada som novo corta o anterior
       playSound(api, id);
       countUse(id);
       api.toast(s.em + ' ' + s.name);
@@ -719,7 +721,7 @@
       const name = api.nameOf(from);
       if (m.k === 'som') {
         if (typeof m.s !== 'string') return;
-        const now = Date.now(); if (now - (lastFrom[from] || 0) < 700) return; lastFrom[from] = now;
+        const now = Date.now(); if (now - (lastFrom[from] || 0) < 150) return; lastFrom[from] = now;
         if (typeof m.u === 'string') {
           if (!/^u-[a-z0-9]{1,30}$/.test(m.s) || directUrl(m.u) !== m.u) return;
           const n = api.cleanText(m.n).slice(0, 24) || 'Som', e = emoji(m.e) || '🔊';
