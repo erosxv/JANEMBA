@@ -426,6 +426,23 @@ function onCallClosed(call) {
   else removeRemoteTile(pid);
 }
 
+// Medidor de uso do TURN (estimativa só deste aparelho; o total da conta está no painel da Cloudflare)
+const TURN_USE_KEY = 'callzinha.turn.uso';
+let turnSessionBytes = 0;
+function turnMonth() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function turnUsage() {
+  let u = null; try { u = JSON.parse(localStorage.getItem(TURN_USE_KEY) || 'null'); } catch (e) {}
+  return u && u.m === turnMonth() && Number(u.b) >= 0 ? { m: u.m, b: Number(u.b) } : { m: turnMonth(), b: 0 };
+}
+function addTurnUsage(n) {
+  if (!(n > 0)) return;
+  turnSessionBytes += n;
+  const u = turnUsage(); u.b += n;
+  try { localStorage.setItem(TURN_USE_KEY, JSON.stringify(u)); } catch (e) {}
+  if (typeof renderTurnMeter === 'function') renderTurnMeter();
+}
+function fmtBytes(b) { return b >= 1e9 ? (b / 1e9).toFixed(2).replace('.', ',') + ' GB' : (b / 1e6).toFixed(b >= 1e8 ? 0 : 1).replace('.', ',') + ' MB'; }
+
 // Ligação que passa pelo servidor TURN gasta a cota (1.000 GB/mês): marca a ligação e a tela vai com bitrate menor (ver applySenderParams)
 async function checkRelay(call) {
   try {
@@ -438,6 +455,12 @@ async function checkRelay(call) {
     const lc = m.get(sel.localCandidateId), rc = m.get(sel.remoteCandidateId);
     const relayed = !!((lc && lc.candidateType === 'relay') || (rc && rc.candidateType === 'relay'));
     if (relayed !== !!call._relay) { call._relay = relayed; applySenderParams(call); }
+    // medidor: a Cloudflare cobra o que o servidor ENTREGA a este aparelho, ou seja, o que eu recebo quando o meu lado é "relay"
+    const rx = typeof sel.bytesReceived === 'number' ? sel.bytesReceived : null;
+    if (rx !== null && lc && lc.candidateType === 'relay') {
+      if (typeof call._relayRx === 'number' && rx >= call._relayRx) addTurnUsage(rx - call._relayRx);
+      call._relayRx = rx;
+    } else call._relayRx = null;
   } catch (e) {}
 }
 setInterval(() => { Object.keys(calls).forEach((id) => checkRelay(calls[id])); }, 15000);

@@ -18,7 +18,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>window.Peer || document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');</script>
-<link rel="stylesheet" href="app/estilo.css?v=1.25.1">
+<link rel="stylesheet" href="app/estilo.css?v=1.25.2">
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -284,6 +284,10 @@
         <span class="lbl">Painel de diagnóstico</span>
         <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button id="copyDiagBtn" class="sbtn" title="Copia um resumo do app e das ligações para colar numa conversa">Copiar diagnóstico</button><button id="openDiagBtn" class="sbtn">Abrir</button></span>
       </div>
+      <div class="srow inline">
+        <span class="lbl">Uso do servidor TURN<small id="turnMeter" style="display:block;color:#7b818a"></small></span>
+        <button id="turnDashBtn" class="sbtn" title="Abre o painel da Cloudflare com o uso de toda a conta">Ver na Cloudflare</button>
+      </div>
       <div class="srow">
         <label for="setVisual">Visual da sala</label>
         <select id="setVisual">
@@ -301,12 +305,12 @@
   </div>
 </aside>
 
-<script src="app/1-inicio.js?v=1.25.1"></script>
-<script src="app/2-conexoes.js?v=1.25.1"></script>
-<script src="app/3-tela.js?v=1.25.1"></script>
-<script src="app/4-audio.js?v=1.25.1"></script>
-<script src="app/5-interface.js?v=1.25.1"></script>
-<script src="app/6-musica.js?v=1.25.1"></script>
-<script src="app/7-chat-extras.js?v=1.25.1"></script>
+<script src="app/1-inicio.js?v=1.25.2"></script>
+<script src="app/2-conexoes.js?v=1.25.2"></script>
+<script src="app/3-tela.js?v=1.25.2"></script>
+<script src="app/4-audio.js?v=1.25.2"></script>
+<script src="app/5-interface.js?v=1.25.2"></script>
+<script src="app/6-musica.js?v=1.25.2"></script>
+<script src="app/7-chat-extras.js?v=1.25.2"></script>
 </body>
 </html>

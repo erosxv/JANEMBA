@@ -237,6 +237,7 @@ async function buildDiagText() {
     (dfnNode ? ' · memória ' + Math.round(dfnMem / 1048576) + ' MB' : '') + (dfnFailed ? ' · forte falhou' : '') + (rnnoiseFailed ? ' · RNNoise falhou' : '') +
     ' · portão ' + (prefs.gateOn ? prefs.gateThr + ' dB' : 'desligado'));
   if (audioCtx) L.push('Áudio: ' + audioCtx.sampleRate + ' Hz · ' + audioCtx.state + ' · latência ' + num((audioCtx.baseLatency || 0) * 1000, 0, ' ms') + ' + saída ' + num((audioCtx.outputLatency || 0) * 1000, 0, ' ms'));
+  L.push('TURN uso (só este aparelho): ' + fmtBytes(turnSessionBytes) + ' na chamada · ' + fmtBytes(turnUsage().b) + ' no mês');
   L.push('TURN: ' + turnInfo + (sharingScreen ? ' · você está compartilhando a tela (upload informado: ' + prefs.upload + ' Mbps)' : ''));
   const sk = Object.keys(soundKeys());
   if (sk.length) L.push('Atalhos de sons: ' + sk.map((k) => shortcutLabel(k) + (window.czTeclas ? (globalSoundKeys.has(k) ? ' (segundo plano: sim)' : ' (segundo plano: não)') : '')).join(', ') +
@@ -298,6 +299,15 @@ function toggleDiag(force) {
 }
 $('diagClose').onclick = () => toggleDiag(false);
 $('copyDiagBtn').onclick = copyDiag;
+function renderTurnMeter() {
+  const el = $('turnMeter'); if (!el) return;
+  if (turnInfo !== 'ativo') { el.textContent = 'TURN ' + turnInfo; return; }
+  const via = Object.keys(calls).filter((id) => calls[id] && calls[id]._relay).map(nameOf);
+  el.textContent = 'Este aparelho: ' + fmtBytes(turnSessionBytes) + ' nesta chamada · ' + fmtBytes(turnUsage().b) + ' neste mês (de 1.000 GB da conta)' +
+    (via.length ? ' · agora via TURN com ' + via.join(', ') : ' · agora ligações diretas');
+}
+setInterval(renderTurnMeter, 5000); renderTurnMeter();
+$('turnDashBtn').onclick = () => { window.open('https://dash.cloudflare.com/?to=/:account/realtime/turn/overview', '_blank', 'noopener'); };
 $('copyDiagBtn2').onclick = copyDiag;
 $('openDiagBtn').onclick = () => { toggleDiag(); if (diagOpen) closeSettings(); };
 
