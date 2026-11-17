@@ -144,7 +144,7 @@ const RTC_CONFIG = {
 };
 // Servidor TURN: retransmite o áudio quando a ligação direta é impossível (4G/5G com CGNAT, rede de empresa).
 // Um Cloudflare Worker (servidor/turn-worker.js) devolve credenciais temporárias. Vazio = só STUN, como antes.
-const TURN_URL = '';
+const TURN_URL = 'https://callzinha-turn.eros-x-a-zy.workers.dev/';
 let turnInfo = 'não configurado';
 function mergeTurn(list) {
   const urls = [];
