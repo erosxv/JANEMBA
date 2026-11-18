@@ -4,5 +4,6 @@
   { "id": "risada-peludao", "nome": "RISADA DO PELUDÃO", "emoji": "😂", "arquivo": "risada-peludao.mp3" },
   { "id": "ser-bandido", "nome": "SER BANDIDO É BOM DEMAIS", "emoji": "😎", "arquivo": "ser-bandido.mp3" },
   { "id": "ovo-do-leao", "nome": "OVO DO LEÃO", "emoji": "🦁", "arquivo": "ovo-do-leao.mp3" },
-  { "id": "fah", "nome": "FAH", "emoji": "📣", "arquivo": "fah.mp3" }
+  { "id": "fah", "nome": "FAH", "emoji": "📣", "arquivo": "fah.mp3" },
+  { "id": "suck-me", "nome": "SUCK ME", "emoji": "🎤", "arquivo": "suck-me.mp3" }
 ]
