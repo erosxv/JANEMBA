@@ -183,10 +183,34 @@ app.whenReady().then(() => {
     return ok;
   });
 
+  // Botões do mouse como atalho de som (meio e laterais): precisa "escutar" o mouse no sistema, o que o Electron não faz sozinho.
+  // O módulo nativo só é carregado quando alguém liga um botão a um som, e só olha cliques: nada é gravado nem enviado.
+  // Se o módulo não carregar (ou o Linux estiver em Wayland), os botões continuam valendo com o CallZinha na frente.
+  let uio = null, uioOn = false, uioWired = false, mouseWanted = new Set();
+  const domButton = (n) => (n === 1 ? 0 : n === 2 ? 2 : n === 3 ? 1 : n === 4 ? 3 : n === 5 ? 4 : n - 1);   // numeração do hook → a do navegador
+  const stopMouse = () => { if (uio && uioOn) { try { uio.uIOhook.stop(); } catch (err) {} uioOn = false; } };
+  stopMouseHook = stopMouse;
+  ipcMain.handle('cz-mouse', (e, lista) => {
+    if (!win || e.sender !== win.webContents || !e.senderFrame.url.startsWith('app://callzinha/')) return [];
+    const want = (Array.isArray(lista) ? lista : []).filter((n) => Number.isInteger(n) && (n === 1 || (n >= 3 && n <= 8))).slice(0, 8);
+    mouseWanted = new Set(want);
+    if (!want.length) { stopMouse(); return []; }
+    try {
+      if (uio === null) uio = require('uiohook-napi');
+      if (!uioWired) {
+        uioWired = true;
+        uio.uIOhook.on('mousedown', (ev) => { const b = domButton(ev.button); if (mouseWanted.has(b) && win && !win.isDestroyed()) win.webContents.send('cz-mouse-btn', b); });
+      }
+      if (!uioOn) { uio.uIOhook.start(); uioOn = true; }
+      return want;
+    } catch (err) { uio = false; return []; }
+  });
+
   createWindow();
   setupAutoUpdate();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('will-quit', () => globalShortcut.unregisterAll());
+let stopMouseHook = () => {};
+app.on('will-quit', () => { globalShortcut.unregisterAll(); try { stopMouseHook(); } catch (e) {} });

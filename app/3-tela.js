@@ -272,6 +272,8 @@ function shortcutFromEvent(e) {
 }
 function shortcutLabel(s) {
   const p = parseShortcut(s);
+  const mb = /^Mouse(\d)$/.exec(p.code);   // botão do mouse: Mouse1 = meio, Mouse3 = lateral (voltar), Mouse4 = lateral (avançar)
+  if (mb) return mb[1] === '1' ? 'Botão do meio do mouse' : mb[1] === '3' ? 'Botão lateral do mouse (voltar)' : mb[1] === '4' ? 'Botão lateral do mouse (avançar)' : 'Botão ' + (Number(mb[1]) + 1) + ' do mouse';
   let k = p.code.replace(/^Key/, '').replace(/^Digit/, '').replace('Space', 'Espaço').replace('Backquote', '`');
   const mods = [p.ctrl ? 'Ctrl' : '', p.alt ? 'Alt' : '', p.shift ? 'Shift' : '', p.meta ? 'Cmd' : ''].filter(Boolean);
   return mods.concat([k]).join('+');

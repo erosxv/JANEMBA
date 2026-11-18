@@ -1,7 +1,7 @@
 {
   "name": "callzinha",
   "productName": "CallZinha",
-  "version": "1.25.2",
+  "version": "1.26.0",
   "description": "Chamada em grupo por áudio, com tela compartilhada",
   "author": "erosxv",
   "desktopName": "callzinha.desktop",
@@ -68,6 +68,7 @@
     "electron-builder": "^26.15.3"
   },
   "dependencies": {
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "uiohook-napi": "^1.5.5"
   }
 }

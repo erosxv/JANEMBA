@@ -385,7 +385,7 @@
         if (api.pcApp) {
           const g = el('label', 'fx-row fx-global'); const cb = el('input'); cb.type = 'checkbox'; cb.checked = api.soundKeysGlobal();
           cb.onchange = () => api.setSoundKeysGlobal(cb.checked).then(sounds);
-          g.append(el('span', '', 'Funcionar em segundo plano (jogando). A tecla para de digitar em outros programas durante a call: prefira F1–F12, teclado numérico ou Ctrl/Alt + tecla. Tecla riscada = só com o CallZinha na frente.'), cb);
+          g.append(el('span', '', 'Funcionar em segundo plano (jogando). A tecla para de digitar em outros programas durante a call: prefira F1–F12, teclado numérico ou Ctrl/Alt + tecla. Tecla riscada = só com o CallZinha na frente. Você também pode usar o botão do meio ou os botões laterais do mouse.'), cb);
           panel.append(g);
         }
       }
@@ -428,27 +428,32 @@
     // espera a próxima tecla e liga ao som (uma tecla por som; a tecla sai de outro som que a usava)
     function captureKey(s, b) {
       const label = b.querySelector('span:last-of-type');
-      label.textContent = 'Aperte uma tecla…';
+      label.textContent = 'Aperte uma tecla ou botão do mouse…';
       api.captureSoundKey(true);
       const MODS = ['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
-      const stop = () => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('pointerdown', onAway, true); api.captureSoundKey(false); };
-      const onAway = (e) => { if (!b.contains(e.target)) { stop(); sounds(); } };
+      const stop = () => { document.removeEventListener('keydown', onKey, true); document.removeEventListener('mousedown', onMouse, true); document.removeEventListener('pointerdown', onAway, true); api.captureSoundKey(false); };
+      const onAway = (e) => { if (e.button === 0 && !b.contains(e.target)) { stop(); sounds(); } };   // só o clique normal cancela; botão do meio/lateral vira atalho
+      const onMouse = (e) => { const mk = api.mouseKeyFromEvent(e); if (mk) { e.preventDefault(); e.stopPropagation(); assign(mk, false); } };
       const onKey = (e) => {
         if (MODS.includes(e.code)) return;
         e.preventDefault(); e.stopPropagation();
         if (e.code === 'Escape') { stop(); sounds(); return; }
+        assign(api.shortcutFromEvent(e), e.code === 'Backspace' || e.code === 'Delete');
+      };
+      function assign(k, clear) {
         const map = api.soundKeys();
-        for (const k in map) if (map[k] === s.id) delete map[k];
-        if (e.code !== 'Backspace' && e.code !== 'Delete') {
-          const k = api.shortcutFromEvent(e), why = api.reservedKey(k);
+        for (const x in map) if (map[x] === s.id) delete map[x];
+        if (!clear) {
+          const why = api.reservedKey(k);
           if (why) { api.toast('A tecla ' + api.shortcutLabel(k) + ' não dá: ' + why + '.'); return; }   // continua esperando outra tecla
           if (map[k] && map[k] !== s.id) api.toast('A tecla ' + api.shortcutLabel(k) + ' passou para ' + s.name + '.');
           map[k] = s.id;
         }
         stop();
         api.setSoundKeys(map).then(sounds);
-      };
+      }
       document.addEventListener('keydown', onKey, true);
+      document.addEventListener('mousedown', onMouse, true);
       setTimeout(() => document.addEventListener('pointerdown', onAway, true), 0);
     }
     function addForm() {

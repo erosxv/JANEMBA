@@ -7,6 +7,8 @@ if (location.protocol === 'app:') {
   contextBridge.exposeInMainWorld('czTeclas', {
     definir: (lista) => ipcRenderer.invoke('cz-teclas', lista),
     aoApertar: (cb) => { ipcRenderer.on('cz-tecla', (e, acc) => cb(acc)); },
+    mouse: (lista) => ipcRenderer.invoke('cz-mouse', lista),
+    aoMouse: (cb) => { ipcRenderer.on('cz-mouse-btn', (e, btn) => cb(btn)); },
   });
 }
 
